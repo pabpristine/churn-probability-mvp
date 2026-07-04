@@ -113,16 +113,24 @@ class ClientRepository(BaseRepository):
         client_id
     ):
         """
-        Retrieve all updates for a client.
+        Retrieve the client record.
+
+        Returns a single record since each client
+        has only one row in the table.
         """
 
-        return self.provider.execute(
+        response = self.provider.execute(
             operation="select",
             table=self.table_name,
             filters={
                 "client_id": client_id
             }
         )
+
+        if response:
+            return response[0]
+
+        return None
 
     def find_latest_update(
         self,
