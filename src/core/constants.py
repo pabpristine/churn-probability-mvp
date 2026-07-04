@@ -63,3 +63,15 @@ DEFAULT_LOG_FORMAT = (
 FRAMEWORK_NAME = "Dirt2Dollar"
 
 FRAMEWORK_VERSION = "1.0.0"
+
+# ==========================================
+# LLM Configuration
+# ==========================================
+
+SUMMARY_BATCH_SIZE = 10000
+
+# ==========================================
+# LLM Configuration
+# ==========================================
+
+SUMMARY_BATCH_SIZE = 10000

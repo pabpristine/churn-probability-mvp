@@ -1,0 +1,63 @@
+from src.domain.entities.workflow_context import (
+    WorkflowContext
+)
+
+from src.services.client_data_retrieval_service import (
+    ClientDataRetrievalService
+)
+
+from src.services.summary_batch_preparation_service import (
+    SummaryBatchPreparationService
+)
+
+
+def main():
+
+    context = WorkflowContext()
+
+    context.client_name = (
+        "Anvil Custom"
+    )
+
+    # Retrieve client data
+    context = (
+        ClientDataRetrievalService()
+        .execute(context)
+    )
+
+    # Prepare batches
+    context = (
+        SummaryBatchPreparationService()
+        .execute(context)
+    )
+
+    print("\n========== SUMMARY BATCHES ==========\n")
+
+    print(
+        f"Total Batches : {len(context.summary_batches)}"
+    )
+
+    for batch in context.summary_batches:
+
+        print("\n")
+        print("=" * 100)
+
+        print(
+            f"Batch {batch['batch_index']} "
+            f"of {batch['batch_count']}"
+        )
+
+        print("=" * 100)
+
+        print()
+
+        print(batch["text"])
+
+        print()
+
+        print("=" * 100)
+
+
+if __name__ == "__main__":
+
+    main()
