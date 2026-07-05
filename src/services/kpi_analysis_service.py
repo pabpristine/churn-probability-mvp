@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Optional
 
+
 from src.base.base_service import BaseService
 from src.domain.entities.workflow_context import WorkflowContext
 from src.providers.llm.groq_provider import GroqProvider
@@ -7,6 +8,8 @@ from src.repositories.kpi_repository import KPIRepository
 from src.repositories.pattern_repository import PatternRepository
 
 
+# Service responsible for analyzing KPI data,
+# matching business patterns, and generating interpretation.
 class KPIAnalysisService(BaseService):
     """
     Analyze KPI trends, detect predefined patterns,
@@ -15,18 +18,27 @@ class KPIAnalysisService(BaseService):
     """
 
     def __init__(self):
+        # Initialize the base service with service metadata.
         super().__init__(
             service_name="KPI Analysis Service",
             service_type="KPI_ANALYSIS"
         )
+
+        # Repository for KPI data access.
         self.kpi_repository = KPIRepository()
+
+        # Repository for fetching interpretation rows for patterns.
         self.pattern_repository = PatternRepository()
+
+        # LLM provider used to generate the final natural-language summary.
         self.groq_provider = GroqProvider()
 
     def validate(self, context: WorkflowContext):
+        # Ensure a client_id exists before analysis.
         if not context.client_id:
             raise ValueError("client_id is required in workflow context")
 
+        # Use final summary if present, otherwise fall back to summary.
         summary_text = context.final_client_summary or context.summary
         if not summary_text:
             raise ValueError("final summary is required for KPI analysis")
@@ -34,13 +46,20 @@ class KPIAnalysisService(BaseService):
         return True
 
     def process(self, context: WorkflowContext) -> WorkflowContext:
+        # Decide which summary text should be used for analysis.
         summary_text = context.final_client_summary or context.summary
+
+        # Use the existing KPI dataset if available, otherwise load it.
         kpi_dataset = context.kpi_dataset or self._load_kpi_dataset(context)
         current_kpis = kpi_dataset.get("current_kpis", {})
 
+        # Detect KPI patterns from the current KPI values.
         matched_pattern_names = self._detect_patterns(current_kpis)
+
+        # Fetch full pattern interpretation rows from the repository.
         matched_patterns = self._fetch_pattern_rows(matched_pattern_names)
 
+        # Fallback to a stable pattern when no specific patterns are detected.
         if not matched_patterns:
             stable_pattern = self.pattern_repository.find_by_pattern_name(
                 "Stable Performance"
@@ -48,8 +67,10 @@ class KPIAnalysisService(BaseService):
             matched_patterns = stable_pattern[:1]
             matched_pattern_names = ["Stable Performance"]
 
+        # Calculate the final overall severity from all matched patterns.
         overall_severity = self._calculate_overall_severity(matched_patterns)
 
+        # Generate a human-readable summary using the LLM.
         llm_summary = self._generate_llm_summary(
             client_name=context.client_name,
             summary_text=summary_text,
@@ -57,6 +78,7 @@ class KPIAnalysisService(BaseService):
             matched_patterns=matched_patterns
         )
 
+        # Store the interpretation result in the workflow context.
         context.kpi_interpretation = {
             "client_id": context.client_id,
             "client_name": context.client_name,
@@ -73,10 +95,16 @@ class KPIAnalysisService(BaseService):
         self,
         context: WorkflowContext
     ) -> Dict[str, Any]:
+        # Fetch raw KPI records for the client from the repository.
         raw_records = self.kpi_repository.find_by_id(context.client_id) or []
+
+        # Normalize all returned records before using them.
         normalized_records = [self._normalize_record(record) for record in raw_records]
+
+        # Use the first normalized record as the current KPI snapshot.
         current_kpis = normalized_records[0] if normalized_records else {}
 
+        # Build a structured KPI dataset for downstream use.
         return {
             "client_id": context.client_id,
             "client_name": context.client_name,
@@ -91,6 +119,7 @@ class KPIAnalysisService(BaseService):
         self,
         record: Dict[str, Any]
     ) -> Dict[str, Any]:
+        # Fields that should be converted into numeric values.
         numeric_fields = {
             "ad_spend_7d",
             "ad_spend_mtd",
@@ -107,8 +136,10 @@ class KPIAnalysisService(BaseService):
             "retry_count",
         }
 
+        # Store normalized values here.
         normalized = {}
 
+        # Convert numeric fields to float and keep others unchanged.
         for key, value in record.items():
             if key in numeric_fields:
                 normalized[key] = self._to_float(value)
@@ -118,9 +149,11 @@ class KPIAnalysisService(BaseService):
         return normalized
 
     def _to_float(self, value: Any):
+        # Treat missing values as None.
         if value is None or value == "":
             return None
 
+        # Convert numeric-like values to float when possible.
         try:
             return float(value)
         except (TypeError, ValueError):
@@ -130,8 +163,10 @@ class KPIAnalysisService(BaseService):
         self,
         kpi: Dict[str, Any]
     ) -> List[str]:
+        # Collect all pattern names detected from KPI values.
         patterns = []
 
+        # Helper function to safely convert KPI values to float.
         def num(field: str) -> Optional[float]:
             value = kpi.get(field)
             if value is None:
@@ -141,29 +176,36 @@ class KPIAnalysisService(BaseService):
             except (TypeError, ValueError):
                 return None
 
+        # Extract key lead cost metrics.
         lead_7d = num("lead_cost_7d")
         lead_mtd = num("lead_cost_mtd")
         lead_30d = num("lead_cost_30d")
 
+        # Extract key appointment cost metrics.
         appt_7d = num("appt_cost_7d")
         appt_mtd = num("appt_cost_mtd")
         appt_30d = num("appt_cost_30d")
 
+        # Extract ad spend metrics.
         ad_7d = num("ad_spend_7d")
         ad_mtd = num("ad_spend_mtd")
         ad_30d = num("ad_spend_30d")
 
+        # Extract business context fields.
         campaign_status = kpi.get("campaign_status")
         call_center_status = kpi.get("call_center_status")
         program_stage = kpi.get("program_stage")
 
+        # If key metrics are missing, return an incomplete tracking pattern.
         if lead_7d is None or appt_7d is None:
             patterns.append("Incomplete Tracking")
             return list(dict.fromkeys(patterns))
 
+        # Detect missing historical lead-cost data.
         if lead_30d is None and lead_7d is not None:
             patterns.append("Historical Data Gap")
 
+        # Compare lead cost trends across time windows.
         if lead_mtd is not None and lead_30d is not None:
             if lead_7d > lead_mtd and lead_mtd > lead_30d:
                 patterns.append("Rising Lead Cost")
@@ -183,6 +225,7 @@ class KPIAnalysisService(BaseService):
             if lead_7d < lead_mtd and lead_mtd > lead_30d:
                 patterns.append("Flash Recovery")
 
+        # Compare appointment cost patterns.
         if appt_mtd is not None and appt_30d is not None:
             if appt_7d > appt_mtd and appt_mtd > appt_30d:
                 patterns.append("Rising Appointment Cost")
@@ -193,6 +236,7 @@ class KPIAnalysisService(BaseService):
             if lead_7d is not None and appt_7d > (lead_7d * 5):
                 patterns.append("Poor Appointment Conversion")
 
+        # Compare ad spend trends.
         if ad_30d is not None:
             if ad_7d is not None and ad_7d > (ad_30d / 4.3):
                 patterns.append("Aggressive Spending")
@@ -203,6 +247,7 @@ class KPIAnalysisService(BaseService):
             if ad_7d is not None and abs(ad_7d - (ad_30d / 4.3)) < (ad_30d * 0.05):
                 patterns.append("Consistent Spend")
 
+        # Compare lead cost and ad spend to infer ROI direction.
         if lead_mtd is not None and ad_mtd is not None and ad_7d is not None:
             if lead_7d < lead_mtd and ad_7d >= ad_mtd:
                 patterns.append("Improving ROI Trajectory")
@@ -231,6 +276,7 @@ class KPIAnalysisService(BaseService):
             if ad_7d < ad_mtd and lead_7d > lead_mtd:
                 patterns.append("Budget Constraint Impact")
 
+        # Campaign status-based pattern checks.
         if campaign_status == "Active" and lead_30d is not None and lead_7d > (lead_30d * 1.3):
             patterns.append("Active Campaign Stall")
 
@@ -242,12 +288,14 @@ class KPIAnalysisService(BaseService):
         ):
             patterns.append("Paused with Good Metrics")
 
+        # Call center capacity-based checks.
         if call_center_status == "Limited Capacity" and appt_30d is not None and appt_7d < appt_30d:
             patterns.append("Call Center Bottleneck")
 
         if call_center_status == "Available" and appt_30d is not None and appt_7d > (appt_30d * 1.3):
             patterns.append("Call Center Underutilization")
 
+        # Program stage-based checks.
         if program_stage == "Testing" and lead_30d is not None and lead_7d > lead_30d:
             patterns.append("Testing Phase High Cost")
 
@@ -270,17 +318,21 @@ class KPIAnalysisService(BaseService):
         ):
             patterns.append("Launch Stability")
 
+        # If nothing matches, treat the KPI state as stable.
         if not patterns:
             patterns.append("Stable Performance")
 
+        # Remove duplicates while preserving order.
         return list(dict.fromkeys(patterns))
 
     def _fetch_pattern_rows(
         self,
         pattern_names: List[str]
     ) -> List[Dict[str, Any]]:
+        # Store matched pattern rows here.
         rows = []
 
+        # Fetch the first matching row for each detected pattern name.
         for pattern_name in pattern_names:
             result = self.pattern_repository.find_by_pattern_name(pattern_name) or []
             if result:
@@ -292,6 +344,7 @@ class KPIAnalysisService(BaseService):
         self,
         matched_patterns: List[Dict[str, Any]]
     ) -> str:
+        # Map severity labels to ranking values.
         severity_rank = {
             "low": 1,
             "medium": 2,
@@ -299,8 +352,10 @@ class KPIAnalysisService(BaseService):
             "critical": 4
         }
 
+        # Default severity starts at low.
         highest = "low"
 
+        # Pick the highest severity among all matched patterns.
         for pattern in matched_patterns:
             severity = (pattern.get("severity_level") or "low").lower()
             if severity_rank.get(severity, 1) > severity_rank.get(highest, 1):
@@ -315,18 +370,24 @@ class KPIAnalysisService(BaseService):
         current_kpis: Dict[str, Any],
         matched_patterns: List[Dict[str, Any]]
     ) -> Optional[str]:
+        # Wrap LLM generation in a try-except block for safety.
         try:
+            # Build the prompt with client summary, KPI values, and matched patterns.
             prompt = f"""
 Client Name: {client_name}
+
 
 Final Client Summary:
 {summary_text}
 
+
 Current KPIs:
 {current_kpis}
 
+
 Matched KPI Patterns:
 {matched_patterns}
+
 
 Write a concise KPI interpretation in 4-6 sentences.
 Focus on:
@@ -335,6 +396,7 @@ Focus on:
 3. most important business takeaway.
 """.strip()
 
+            # Ask the Groq provider to generate a concise business summary.
             response = self.groq_provider.generate_response(
                 prompt=prompt,
                 system_prompt=(
