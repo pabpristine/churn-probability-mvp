@@ -159,6 +159,28 @@ class WorkflowContext:
     updated_satisfaction_score: Optional[int] = None
 
     # -------------------------------------------------
+    # Generated Summary
+    # -------------------------------------------------
+
+    updated_summary: Optional[str] = None
+
+    updated_satisfaction_score: Optional[int] = None
+
+    # -------------------------------------------------
+    # LLM Output
+    # -------------------------------------------------
+
+    llm_output: Optional[Dict[str, Any]] = None
+
+    # -------------------------------------------------
+    # Token Usage
+    # -------------------------------------------------
+
+    llm_usage: Dict[str, int] = field(
+        default_factory=dict
+    )
+
+    # -------------------------------------------------
     # Metadata
     # -------------------------------------------------
 
