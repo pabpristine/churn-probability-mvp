@@ -5,8 +5,11 @@ from src.repositories.client_repository import ClientRepository
 
 class UpdatesDataService(BaseService):
     """
-    Fetches all updates for a client from the
-    client_updates table.
+    Retrieves the previously stored summary
+    for a client from Supabase.
+
+    If no record exists, the client is
+    considered a new client.
     """
 
     def __init__(self):
@@ -27,8 +30,12 @@ class UpdatesDataService(BaseService):
         context: WorkflowContext
     ):
 
-        if not context.client_id:
+        if context is None:
+            raise ValueError(
+                "WorkflowContext cannot be None."
+            )
 
+        if not context.client_id:
             raise ValueError(
                 "Client ID is required."
             )
@@ -44,26 +51,41 @@ class UpdatesDataService(BaseService):
         context: WorkflowContext
     ) -> WorkflowContext:
 
-        updates = self.client_repository.find_by_client_id(
+        record = self.client_repository.find_by_client_id(
             context.client_id
         )
 
-        if not updates:
+        # ---------------------------------------------
+        # New Client
+        # ---------------------------------------------
 
-            raise Exception(
-                f"No updates found for client {context.client_id}"
-            )
+        if record is None:
 
-        # Sort updates chronologically
-        updates = sorted(
-            updates,
-            key=lambda update: update["timestamp"]
+            context.is_new_client = True
+            context.previous_summary = None
+            context.previous_summary_timestamp = None
+            context.previous_satisfaction_score = None
+
+            return context
+
+        # ---------------------------------------------
+        # Existing Client
+        # ---------------------------------------------
+
+        context.is_new_client = False
+
+        context.previous_summary = record.get(
+            "summary"
         )
 
-        # Store all updates in WorkflowContext
-        context.client_updates = updates
+        context.previous_summary_timestamp = record.get(
+            "timestamp"
+        )
 
-        # Store the latest update separately
-        context.latest_client_update = updates[-1]
+        context.previous_satisfaction_score = record.get(
+            "satisfaction_score"
+        )
+
+        context.previous_record = record
 
         return context
