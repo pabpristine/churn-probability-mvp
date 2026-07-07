@@ -29,17 +29,33 @@ class WorkflowContext:
     client_updates: List[Dict[str, Any]] = field(default_factory=list)
     latest_client_update: Optional[Dict[str, Any]] = None
 
+        # Program Information
+    program_type: Optional[str] = None
+
+    program_duration: Optional[str] = None
+
+    program_stage: Optional[str] = None
+
+    campaign_status: Optional[str] = None
+
+
     # -------------------------------------------------
     # KPI Information
     # -------------------------------------------------
 
     current_kpis: Dict[str, Any] = field(default_factory=dict)
+
     campaign_weights: Dict[str, Any] = field(default_factory=dict)
 
-    # New fields for KPI pipeline
-    kpi_dataset: Dict[str, Any] = field(default_factory=dict)
-    kpi_interpretation: Dict[str, Any] = field(default_factory=dict)
+    current_satisfaction: Optional[str] = None
 
+    # -------------------------------------------------
+    # KPI Pipeline
+    # -------------------------------------------------
+
+    kpi_dataset: Dict[str, Any] = field(default_factory=dict)
+
+    kpi_interpretation: Dict[str, Any] = field(default_factory=dict)
     # -------------------------------------------------
     # AI Summary
     # -------------------------------------------------
@@ -76,6 +92,57 @@ class WorkflowContext:
     # -------------------------------------------------
 
     workflow_status: Optional[str] = None
+
+    # -------------------------------------------------
+    # Previous Summary
+    # -------------------------------------------------
+
+    previous_summary: Optional[str] = None
+
+    previous_summary_timestamp: Optional[str] = None
+
+    previous_satisfaction_score: Optional[int] = None
+
+    is_new_client: bool = False
+    
+    previous_record: Optional[Dict] = None
+
+    # ------------------------------------------
+    # Summary Batches
+    # ------------------------------------------
+
+    # Summary Batches
+    summary_batches: List[Dict] = field(
+        default_factory=list
+    )
+
+    formatted_update_history: Optional[str] = None
+
+    updated_summary: Optional[str] = None
+
+    updated_satisfaction_score: Optional[int] = None
+
+    # -------------------------------------------------
+    # Generated Summary
+    # -------------------------------------------------
+
+    updated_summary: Optional[str] = None
+
+    updated_satisfaction_score: Optional[int] = None
+
+    # -------------------------------------------------
+    # LLM Output
+    # -------------------------------------------------
+
+    llm_output: Optional[Dict[str, Any]] = None
+
+    # -------------------------------------------------
+    # Token Usage
+    # -------------------------------------------------
+
+    llm_usage: Dict[str, int] = field(
+        default_factory=dict
+    )
 
     # -------------------------------------------------
     # Metadata
