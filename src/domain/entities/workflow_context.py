@@ -52,29 +52,19 @@ class WorkflowContext:
     # KPI Information
     # -------------------------------------------------
 
-    def to_float(value):
-        if value in (None, "", "null"):
-            return None
-        return float(value)
+    current_kpis: Dict[str, Any] = field(default_factory=dict)
 
-        context.current_kpis = {
-            "adSpend7D": to_float(client_data.get("adSpend7D")),
-            "adSpendMTD": to_float(client_data.get("adSpendMTD")),
-            "adSpend30D": to_float(client_data.get("adSpend30D")),
-            "leadCost7D": to_float(client_data.get("leadCost7D")),
-            "leadCostMTD": to_float(client_data.get("leadCostMTD")),
-            "leadCost30D": to_float(client_data.get("leadCost30D")),
-            "apptCost7D": to_float(client_data.get("apptCost7D")),
-            "apptCostMTD": to_float(client_data.get("apptCostMTD")),
-            "apptCost30D": to_float(client_data.get("apptCost30D")),
-        }
+    campaign_weights: Dict[str, Any] = field(default_factory=dict)
 
     current_satisfaction: Optional[str] = None
 
-    campaign_weights: Dict[str, Any] = field(
-        default_factory=dict
-    )
+    # -------------------------------------------------
+    # KPI Pipeline
+    # -------------------------------------------------
 
+    kpi_dataset: Dict[str, Any] = field(default_factory=dict)
+
+    kpi_interpretation: Dict[str, Any] = field(default_factory=dict)
     # -------------------------------------------------
     # AI Summary
     # -------------------------------------------------
