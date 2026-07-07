@@ -1,8 +1,11 @@
 from typing import Any, Dict, List, Optional
 
-
 from src.base.base_service import BaseService
 from src.domain.entities.workflow_context import WorkflowContext
+from src.prompts.kpi_analysis_prompt import (
+    KPI_ANALYSIS_SYSTEM_PROMPT,
+    build_kpi_analysis_prompt,
+)
 from src.providers.llm.groq_provider import GroqProvider
 from src.repositories.kpi_repository import KPIRepository
 from src.repositories.pattern_repository import PatternRepository
@@ -372,37 +375,18 @@ class KPIAnalysisService(BaseService):
     ) -> Optional[str]:
         # Wrap LLM generation in a try-except block for safety.
         try:
-            # Build the prompt with client summary, KPI values, and matched patterns.
-            prompt = f"""
-Client Name: {client_name}
-
-
-Final Client Summary:
-{summary_text}
-
-
-Current KPIs:
-{current_kpis}
-
-
-Matched KPI Patterns:
-{matched_patterns}
-
-
-Write a concise KPI interpretation in 4-6 sentences.
-Focus on:
-1. performance trend,
-2. main risks,
-3. most important business takeaway.
-""".strip()
+            # Build the prompt from the dedicated prompt module.
+            prompt = build_kpi_analysis_prompt(
+                client_name=client_name,
+                summary_text=summary_text,
+                current_kpis=current_kpis,
+                matched_patterns=matched_patterns
+            )
 
             # Ask the Groq provider to generate a concise business summary.
             response = self.groq_provider.generate_response(
                 prompt=prompt,
-                system_prompt=(
-                    "You are a churn risk analysis assistant. "
-                    "Summarize KPI pattern signals clearly and concisely."
-                ),
+                system_prompt=KPI_ANALYSIS_SYSTEM_PROMPT,
                 temperature=0.2,
                 max_tokens=300
             )
@@ -410,4 +394,5 @@ Focus on:
             return response.get("content")
 
         except Exception:
+            # Return None if LLM generation fails for any reason.
             return None

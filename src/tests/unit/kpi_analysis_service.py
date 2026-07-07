@@ -2,7 +2,6 @@ import logging
 import unittest
 from unittest.mock import MagicMock
 
-
 from src.domain.entities.workflow_context import WorkflowContext
 from src.services.kpi_analysis_service import KPIAnalysisService
 
@@ -11,7 +10,7 @@ from src.services.kpi_analysis_service import KPIAnalysisService
 class TestKPIAnalysisService(unittest.TestCase):
     def setUp(self):
         # Disable logging output during test execution
-        # so the console stays clean.
+        # so the console stays clean except for print statements.
         logging.disable(logging.CRITICAL)
 
         # Create the service instance to be tested.
@@ -79,6 +78,8 @@ class TestKPIAnalysisService(unittest.TestCase):
         # Print the analysis output for demonstration.
         print("\n===== KPI ANALYSIS SERVICE OUTPUT =====")
         print("Client ID:", updated_context.kpi_interpretation["client_id"])
+        print("Client Name:", updated_context.kpi_interpretation["client_name"])
+        print("Summary Used:", updated_context.kpi_interpretation["summary_used"])
         print("Matched Pattern Names:", updated_context.kpi_interpretation["matched_pattern_names"])
         print("Overall Severity:", updated_context.kpi_interpretation["overall_severity"])
         print("LLM Summary:", updated_context.kpi_interpretation["llm_summary"])
@@ -90,8 +91,27 @@ class TestKPIAnalysisService(unittest.TestCase):
         self.assertIn("matched_pattern_names", updated_context.kpi_interpretation)
         self.assertIn("matched_patterns", updated_context.kpi_interpretation)
         self.assertIn("overall_severity", updated_context.kpi_interpretation)
+        self.assertIn("llm_summary", updated_context.kpi_interpretation)
         self.assertEqual(updated_context.kpi_interpretation["client_id"], "182135")
+        self.assertEqual(
+            updated_context.kpi_interpretation["client_name"],
+            "Yardworx Land Management"
+        )
+        self.assertEqual(
+            updated_context.kpi_interpretation["summary_used"],
+            "Client performance summary."
+        )
         self.assertIsNotNone(updated_context.kpi_interpretation["llm_summary"])
+
+        # Ensure the LLM provider was called once.
+        self.service.groq_provider.generate_response.assert_called_once()
+
+        # Verify key arguments passed to the LLM provider.
+        llm_call_kwargs = self.service.groq_provider.generate_response.call_args.kwargs
+        self.assertIn("prompt", llm_call_kwargs)
+        self.assertIn("system_prompt", llm_call_kwargs)
+        self.assertEqual(llm_call_kwargs["temperature"], 0.2)
+        self.assertEqual(llm_call_kwargs["max_tokens"], 300)
 
     def test_falls_back_to_stable_performance_when_no_patterns(self):
         # Minimal KPI input for testing fallback behavior.
@@ -134,6 +154,7 @@ class TestKPIAnalysisService(unittest.TestCase):
         # Print fallback output for demonstration.
         print("\n===== KPI ANALYSIS FALLBACK OUTPUT =====")
         print("Matched Pattern Names:", updated_context.kpi_interpretation["matched_pattern_names"])
+        print("Matched Patterns:", updated_context.kpi_interpretation["matched_patterns"])
         print("Overall Severity:", updated_context.kpi_interpretation["overall_severity"])
         print("LLM Summary:", updated_context.kpi_interpretation["llm_summary"])
         print("========================================\n")
@@ -147,6 +168,10 @@ class TestKPIAnalysisService(unittest.TestCase):
         self.assertEqual(
             updated_context.kpi_interpretation["overall_severity"],
             "low"
+        )
+        self.assertEqual(
+            updated_context.kpi_interpretation["llm_summary"],
+            "Stable KPI summary."
         )
 
     def test_validate_raises_when_summary_missing(self):
@@ -168,6 +193,68 @@ class TestKPIAnalysisService(unittest.TestCase):
         print("\n===== KPI ANALYSIS VALIDATION OUTPUT =====")
         print("Validation test passed: missing summary correctly raised ValueError")
         print("==========================================\n")
+
+    def test_process_uses_final_client_summary_when_available(self):
+        # Provide KPI input that is sufficient for analysis.
+        current_kpis = {
+            "client_id": "182135",
+            "lead_cost_7d": 50.0,
+            "lead_cost_mtd": 55.0,
+            "lead_cost_30d": 60.0,
+            "appt_cost_7d": 100.0,
+            "appt_cost_mtd": 110.0,
+            "appt_cost_30d": 120.0,
+            "ad_spend_7d": 500.0,
+            "ad_spend_mtd": 2000.0,
+            "ad_spend_30d": 2200.0
+        }
+
+        # Mock repository pattern lookup.
+        self.service.pattern_repository.find_by_pattern_name.side_effect = lambda name: [
+            {
+                "pattern_name": name,
+                "interpretation": f"Interpretation for {name}",
+                "severity_level": "medium"
+            }
+        ]
+
+        # Mock LLM response.
+        self.service.groq_provider.generate_response.return_value = {
+            "content": "Summary based on final client summary."
+        }
+
+        # Create workflow context that contains both summary fields.
+        context = WorkflowContext(
+            client_id="182135",
+            client_name="Yardworx Land Management",
+            summary="Old summary text.",
+            final_client_summary="Final preferred summary text.",
+            kpi_dataset={
+                "client_id": "182135",
+                "current_kpis": current_kpis,
+                "records": [current_kpis],
+                "record_count": 1
+            }
+        )
+
+        # Execute the service.
+        updated_context = self.service.execute(context)
+
+        # Print output for demonstration.
+        print("\n===== KPI ANALYSIS FINAL SUMMARY OUTPUT =====")
+        print("Summary Used:", updated_context.kpi_interpretation["summary_used"])
+        print("LLM Summary:", updated_context.kpi_interpretation["llm_summary"])
+        print("=============================================\n")
+
+        # Verify the service preferred final_client_summary.
+        self.assertEqual(
+            updated_context.kpi_interpretation["summary_used"],
+            "Final preferred summary text."
+        )
+
+        # Verify the generated prompt includes the preferred summary text.
+        llm_call_kwargs = self.service.groq_provider.generate_response.call_args.kwargs
+        self.assertIn("Final preferred summary text.", llm_call_kwargs["prompt"])
 
 
 if __name__ == "__main__":
