@@ -1,13 +1,15 @@
 from src.base.base_workflow import BaseWorkflow
 from src.services.kpi_analysis_service import KPIAnalysisService
 from src.services.kpi_data_service import KPIDataService
+from src.services.kpi_embedding_service import KPIEmbeddingService
 
 
 # Workflow responsible for running KPI-related services
 # in the required sequence.
 class KPIWorkflow(BaseWorkflow):
     """
-    Workflow that fetches KPI data and then performs KPI analysis.
+    Workflow that fetches KPI data, performs KPI analysis,
+    and creates KPI embeddings.
     """
 
     def __init__(self):
@@ -20,3 +22,6 @@ class KPIWorkflow(BaseWorkflow):
 
         # Second step: analyze the prepared KPI data.
         self.add_service(KPIAnalysisService())
+
+        # Third step: generate and persist KPI embeddings.
+        self.add_service(KPIEmbeddingService())

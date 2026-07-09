@@ -30,3 +30,5 @@ google-auth
 groq
 
 requests
+
+sentence-transformers
