@@ -141,6 +141,100 @@ class WorkflowContext:
     updated_satisfaction_score: Optional[int] = None
 
     # -------------------------------------------------
+    # Historical Knowledge Base
+    # -------------------------------------------------
+
+    historical_summary_embeddings: List[Dict[str, Any]] = field(
+        default_factory=list
+    )
+
+    historical_kpi_embeddings: List[Dict[str, Any]] = field(
+        default_factory=list
+    )
+
+    # -------------------------------------------------
+    # Similarity Retrieval
+    # -------------------------------------------------
+
+    summary_matches: List[Dict[str, Any]] = field(
+        default_factory=list
+    )
+
+    kpi_matches: List[Dict[str, Any]] = field(
+        default_factory=list
+    )
+
+    # -------------------------------------------------
+    # Summary Churn Analysis
+    # -------------------------------------------------
+
+    summary_probability: Optional[float] = None
+
+    summary_analysis: Optional[str] = None
+
+    summary_red_flags: List[str] = field(
+        default_factory=list
+    )
+
+    summary_bottlenecks: List[str] = field(
+        default_factory=list
+    )
+
+    summary_historical_insights: List[str] = field(
+        default_factory=list
+    )
+
+    # -------------------------------------------------
+    # KPI Churn Analysis
+    # -------------------------------------------------
+
+    kpi_probability: Optional[float] = None
+
+    kpi_analysis: Optional[str] = None
+
+    kpi_red_flags: List[str] = field(
+        default_factory=list
+    )
+
+    kpi_bottlenecks: List[str] = field(
+        default_factory=list
+    )
+
+    kpi_historical_insights: List[str] = field(
+        default_factory=list
+    )
+
+    # -------------------------------------------------
+    # Final Churn Report
+    # -------------------------------------------------
+
+    final_probability: Optional[float] = None
+
+    risk_level: Optional[str] = None
+
+    final_analysis: Optional[str] = None
+
+    final_red_flags: List[str] = field(
+        default_factory=list
+    )
+
+    final_bottlenecks: List[str] = field(
+        default_factory=list
+    )
+
+    final_historical_insights: List[str] = field(
+        default_factory=list
+    )
+
+    # -------------------------------------------------
+    # Recommendations
+    # -------------------------------------------------
+
+    recommendations: List[str] = field(
+        default_factory=list
+    )
+
+    # -------------------------------------------------
     # LLM Output
     # -------------------------------------------------
 
