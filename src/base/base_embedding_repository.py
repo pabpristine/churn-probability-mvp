@@ -20,10 +20,40 @@ class BaseEmbeddingRepository(BaseRepository):
             repository_name=repository_name,
             table_name=table_name
         )
+    
+    def find_by_client_id(
+        self,
+        client_id
+    ):
+        """
+        Retrieve an embedding record whose metadata
+        contains the given client_id.
+        """
+
+        records = self.provider.execute(
+            operation="select",
+            table=self.table_name
+        )
+
+        if not records:
+            return None
+
+        for record in records:
+
+            metadata = record.get("metadata")
+
+            if not isinstance(metadata, dict):
+                continue
+
+            if str(metadata.get("client_id")) == str(client_id):
+                return record
+
+        return None
 
     # -------------------------------------------------
     # Create
     # -------------------------------------------------
+    
 
     def save(
         self,
@@ -46,7 +76,7 @@ class BaseEmbeddingRepository(BaseRepository):
         metadata
     ):
         """
-        Save a newly generated embedding.
+        Save a new embedding.
         """
 
         return self.save(
