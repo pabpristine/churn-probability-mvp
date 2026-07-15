@@ -61,7 +61,6 @@ class WorkflowContext:
     # -------------------------------------------------
 
     summary: Optional[str] = None
-
     final_client_summary: Optional[str] = None
 
     recommendations: List[str] = field(default_factory=list)
