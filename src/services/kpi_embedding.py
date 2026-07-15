@@ -1,0 +1,371 @@
+from typing import Any, Dict, List, Optional
+
+from src.base.base_service import BaseService
+from src.domain.entities.workflow_context import WorkflowContext
+from src.providers.embeddings.huggingface_provider import (
+    HuggingFaceProvider
+)
+from src.repositories.kpi_embedding_repository import (
+    KPIEmbeddingRepository
+)
+
+
+class KPIEmbeddingService(BaseService):
+    """
+    Generates a semantic embedding from the KPI interpretation,
+    persists it in the vector table and updates the workflow context.
+    """
+
+    def __init__(self):
+
+        super().__init__(
+            service_name="KPI Embedding Service",
+            service_type="KPI_EMBEDDING"
+        )
+
+        self.embedding_provider = HuggingFaceProvider()
+
+        self.kpi_embedding_repository = (
+            KPIEmbeddingRepository()
+        )
+
+    # -------------------------------------------------
+    # Validation
+    # -------------------------------------------------
+
+    def validate(
+        self,
+        context: WorkflowContext
+    ):
+
+        if not context.client_id:
+            raise ValueError(
+                "Client ID is required."
+            )
+
+        if not context.kpi_interpretation:
+            raise ValueError(
+                "KPI interpretation is required."
+            )
+
+        return True
+
+    # -------------------------------------------------
+    # Business Logic
+    # -------------------------------------------------
+
+    def process(
+        self,
+        context: WorkflowContext
+    ) -> WorkflowContext:
+
+        interpretation = context.kpi_interpretation or {}
+
+        current_kpis = context.current_kpis or {}
+
+        if not current_kpis and context.kpi_dataset:
+
+            current_kpis = context.kpi_dataset.get(
+                "current_kpis",
+                {}
+            )
+
+        # ------------------------------------------
+        # Build embedding content
+        # ------------------------------------------
+
+        content = self._build_embedding_content(
+
+            client_name=context.client_name,
+
+            current_kpis=current_kpis,
+
+            interpretation=interpretation
+
+        )
+
+        # ------------------------------------------
+        # Generate embedding
+        # ------------------------------------------
+
+        embedding = self._generate_embedding(
+            content
+        )
+
+        # ------------------------------------------
+        # Metadata
+        # ------------------------------------------
+
+        metadata = {
+
+            "client_id": context.client_id,
+
+            "source": "kpi_interpretation",
+
+            "matched_pattern_names":
+                interpretation.get(
+                    "matched_pattern_names",
+                    []
+                ),
+
+            "overall_severity":
+                interpretation.get(
+                    "overall_severity"
+                )
+
+        }
+
+        # ------------------------------------------
+        # Find existing embedding
+        # ------------------------------------------
+
+        existing = (
+            self.kpi_embedding_repository
+            .find_by_client_id(
+                context.client_id
+            )
+        )
+
+        # ------------------------------------------
+        # Update existing
+        # ------------------------------------------
+
+        if existing:
+
+            self.kpi_embedding_repository.update_embedding(
+
+                existing["id"],
+
+                {
+
+                    "content": content,
+
+                    "embedding": embedding,
+
+                    "metadata": metadata
+
+                }
+
+            )
+
+        # ------------------------------------------
+        # Insert new
+        # ------------------------------------------
+
+        else:
+
+            self.kpi_embedding_repository.save_embedding(
+
+                content,
+
+                embedding,
+
+                metadata
+
+            )
+
+        # ------------------------------------------
+        # Update Workflow Context
+        # ------------------------------------------
+
+        context.kpi_embedding = embedding
+
+        context.kpi_embedding_content = content
+
+        context.metadata[
+            "kpi_embedding_metadata"
+        ] = metadata
+
+        return context
+
+    # -------------------------------------------------
+    # Build Embedding Content
+    # -------------------------------------------------
+
+    def _build_embedding_content(
+        self,
+        client_name: Optional[str],
+        current_kpis: Dict[str, Any],
+        interpretation: Dict[str, Any]
+    ) -> str:
+
+        program_type = current_kpis.get("program_type")
+        program_stage = current_kpis.get("program_stage")
+        campaign_status = current_kpis.get("campaign_status")
+        call_center_status = current_kpis.get("call_center_status")
+
+        ad_spend_7d = self._format_number(
+            current_kpis.get("ad_spend_7d")
+        )
+
+        ad_spend_mtd = self._format_number(
+            current_kpis.get("ad_spend_mtd")
+        )
+
+        ad_spend_30d = self._format_number(
+            current_kpis.get("ad_spend_30d")
+        )
+
+        lead_cost_7d = self._format_number(
+            current_kpis.get("lead_cost_7d")
+        )
+
+        lead_cost_mtd = self._format_number(
+            current_kpis.get("lead_cost_mtd")
+        )
+
+        lead_cost_30d = self._format_number(
+            current_kpis.get("lead_cost_30d")
+        )
+
+        appt_cost_7d = self._format_number(
+            current_kpis.get("appt_cost_7d")
+        )
+
+        appt_cost_mtd = self._format_number(
+            current_kpis.get("appt_cost_mtd")
+        )
+
+        appt_cost_30d = self._format_number(
+            current_kpis.get("appt_cost_30d")
+        )
+
+        matched_pattern_names = interpretation.get(
+            "matched_pattern_names",
+            []
+        )
+
+        matched_patterns = interpretation.get(
+            "matched_patterns",
+            []
+        )
+
+        llm_summary = interpretation.get(
+            "llm_summary"
+        )
+
+        overall_severity = interpretation.get(
+            "overall_severity"
+        )
+
+        interpretation_lines = []
+
+        for pattern in matched_patterns:
+
+            text = pattern.get(
+                "interpretation"
+            )
+
+            if text:
+                interpretation_lines.append(text)
+
+        interpretation_lines = list(
+            dict.fromkeys(
+                interpretation_lines
+            )
+        )
+
+        content_parts = [
+
+            f"Client: {client_name or 'Unknown Client'}",
+
+            f"Program Type: {program_type or 'unknown'}",
+
+            f"Program Stage: {program_stage or 'unknown'}",
+
+            f"Campaign Status: {campaign_status or 'unknown'}",
+
+            f"Call Center Status: {call_center_status or 'unknown'}",
+
+            "",
+
+            f"Ad Spend (30D): {ad_spend_30d}",
+
+            f"Lead Cost (30D): {lead_cost_30d}",
+
+            f"Appointment Cost (30D): {appt_cost_30d}",
+
+            "",
+
+            f"Recent Ad Spend: 7D={ad_spend_7d}, MTD={ad_spend_mtd}",
+
+            f"Recent Lead Cost: 7D={lead_cost_7d}, MTD={lead_cost_mtd}",
+
+            f"Recent Appointment Cost: 7D={appt_cost_7d}, MTD={appt_cost_mtd}",
+
+            f"Pattern Key: {', '.join(matched_pattern_names) if matched_pattern_names else 'NONE'}",
+
+            f"Interpretation: {', '.join(interpretation_lines) if interpretation_lines else (llm_summary or 'No interpretation available')}",
+
+            f"Severity: {overall_severity or 'unknown'}",
+
+            f"KPI Summary: {llm_summary or 'No KPI summary available'}"
+
+        ]
+
+        return "\n".join(
+            content_parts
+        ).strip()
+
+    # -------------------------------------------------
+    # Generate Embedding
+    # -------------------------------------------------
+
+    def _generate_embedding(
+        self,
+        content: str
+    ) -> List[float]:
+
+        embedding = (
+            self.embedding_provider.generate_embedding(
+                content
+            )
+        )
+
+        if isinstance(
+            embedding,
+            dict
+        ):
+
+            return (
+                embedding.get("embedding")
+                or embedding.get("vector")
+            )
+
+        if isinstance(
+            embedding,
+            list
+        ):
+
+            return embedding
+
+        raise ValueError(
+            "Invalid embedding returned from HuggingFaceProvider."
+        )
+
+    # -------------------------------------------------
+    # Format Numbers
+    # -------------------------------------------------
+
+    def _format_number(
+        self,
+        value: Any
+    ) -> str:
+
+        if value in (
+            None,
+            ""
+        ):
+
+            return "$0"
+
+        try:
+
+            return f"${float(value):.2f}"
+
+        except (
+            TypeError,
+            ValueError
+        ):
+
+            return str(value)

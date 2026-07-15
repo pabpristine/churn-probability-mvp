@@ -29,15 +29,14 @@ class WorkflowContext:
     client_updates: List[Dict[str, Any]] = field(default_factory=list)
     latest_client_update: Optional[Dict[str, Any]] = None
 
-        # Program Information
+    # -------------------------------------------------
+    # Program Information
+    # -------------------------------------------------
+
     program_type: Optional[str] = None
-
     program_duration: Optional[str] = None
-
     program_stage: Optional[str] = None
-
     campaign_status: Optional[str] = None
-
 
     # -------------------------------------------------
     # KPI Information
@@ -56,6 +55,7 @@ class WorkflowContext:
     kpi_dataset: Dict[str, Any] = field(default_factory=dict)
 
     kpi_interpretation: Dict[str, Any] = field(default_factory=dict)
+
     # -------------------------------------------------
     # AI Summary
     # -------------------------------------------------
@@ -70,7 +70,18 @@ class WorkflowContext:
     # -------------------------------------------------
 
     summary_embedding: Optional[List[float]] = None
+
+    summary_embedding_content: Optional[str] = None
+
     kpi_embedding: Optional[List[float]] = None
+
+    kpi_embedding_content: Optional[str] = None
+
+    # -------- NEW (Required for next service) --------
+
+    weighted_embedding: Optional[List[float]] = None
+
+    weighted_embedding_content: Optional[str] = None
 
     # -------------------------------------------------
     # RAG Retrieval
@@ -83,8 +94,11 @@ class WorkflowContext:
     # -------------------------------------------------
 
     summary_probability: Optional[float] = None
+
     kpi_probability: Optional[float] = None
+
     final_probability: Optional[float] = None
+
     risk_level: Optional[str] = None
 
     # -------------------------------------------------
@@ -104,23 +118,18 @@ class WorkflowContext:
     previous_satisfaction_score: Optional[int] = None
 
     is_new_client: bool = False
-    
-    previous_record: Optional[Dict] = None
 
-    # ------------------------------------------
-    # Summary Batches
-    # ------------------------------------------
+    previous_record: Optional[Dict[str, Any]] = None
 
+    # -------------------------------------------------
     # Summary Batches
-    summary_batches: List[Dict] = field(
+    # -------------------------------------------------
+
+    summary_batches: List[Dict[str, Any]] = field(
         default_factory=list
     )
 
     formatted_update_history: Optional[str] = None
-
-    updated_summary: Optional[str] = None
-
-    updated_satisfaction_score: Optional[int] = None
 
     # -------------------------------------------------
     # Generated Summary
