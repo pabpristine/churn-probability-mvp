@@ -45,10 +45,14 @@ class GroqProvider(BaseProvider):
         prompt: str,
         system_prompt: str = "You are a helpful AI assistant.",
         temperature: float = 0.2,
-        max_tokens: int = 1024
+        max_tokens: int = 1024,
+        response_format: dict = None
     ):
         """
         Send a chat completion request to Groq.
+
+        response_format example:
+        {"type": "json_object"}
         """
 
         if self.client is None:
@@ -56,9 +60,9 @@ class GroqProvider(BaseProvider):
                 "Groq client is not initialized."
             )
 
-        return self.client.chat.completions.create(
-            model=settings.groq_model,
-            messages=[
+        request_payload = {
+            "model": settings.groq_model,
+            "messages": [
                 {
                     "role": "system",
                     "content": system_prompt
@@ -68,8 +72,16 @@ class GroqProvider(BaseProvider):
                     "content": prompt
                 }
             ],
-            temperature=temperature,
-            max_tokens=max_tokens
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        }
+
+        # Add response_format only when explicitly requested.
+        if response_format:
+            request_payload["response_format"] = response_format
+
+        return self.client.chat.completions.create(
+            **request_payload
         )
 
     # -------------------------------------------------
@@ -117,7 +129,8 @@ class GroqProvider(BaseProvider):
         prompt: str,
         system_prompt: str = "You are a helpful AI assistant.",
         temperature: float = 0.2,
-        max_tokens: int = 1024
+        max_tokens: int = 1024,
+        response_format: dict = None
     ):
         """
         Generate a response using the Groq LLM.
@@ -127,5 +140,6 @@ class GroqProvider(BaseProvider):
             prompt=prompt,
             system_prompt=system_prompt,
             temperature=temperature,
-            max_tokens=max_tokens
+            max_tokens=max_tokens,
+            response_format=response_format
         )
