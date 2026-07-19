@@ -12,6 +12,7 @@ google-auth-oauthlib
 google-auth-httplib2
 
 requests
+httpx
 
 python-dotenv
 
@@ -20,15 +21,6 @@ pydantic-settings
 
 numpy
 
-httpx
+sentence-transformers
 
 pytest
-
-gspread
-google-auth
-
-groq
-
-requests
-
-sentence-transformers
