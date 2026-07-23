@@ -1,6 +1,6 @@
 from src.domain.entities.workflow_context import WorkflowContext
 
-from src.services.client_name_extraction_service import (
+from src.nodes.client_name_extraction_service import (
     ClientNameExtractionService
 )
 

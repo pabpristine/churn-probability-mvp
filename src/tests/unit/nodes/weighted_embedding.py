@@ -1,5 +1,5 @@
 from src.domain.entities.workflow_context import WorkflowContext
-from src.services.weighted_embedding import (
+from src.nodes.weighted_embedding import (
     WeightedEmbeddingService
 )
 

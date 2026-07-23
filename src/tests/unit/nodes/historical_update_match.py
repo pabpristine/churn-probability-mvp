@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from src.domain.entities.workflow_context import WorkflowContext
-from src.services.historical_update_match_service import HistoricalUpdateMatchService
+from src.nodes.historical_update_match_service import HistoricalUpdateMatchService
 
 
 MOCK_MATCHES = [

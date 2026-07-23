@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from src.domain.entities.workflow_context import WorkflowContext
-from src.services.kpi_data_service import KPIDataService
+from src.nodes.kpi_data_service import KPIDataService
 
 
 # Unit test class for KPIDataService.

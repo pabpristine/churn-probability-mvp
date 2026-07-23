@@ -1,6 +1,6 @@
 from src.domain.entities.workflow_context import WorkflowContext
 
-from src.services.historical_knowledge_service import (
+from src.nodes.historical_knowledge_service import (
     HistoricalKnowledgeService
 )
 

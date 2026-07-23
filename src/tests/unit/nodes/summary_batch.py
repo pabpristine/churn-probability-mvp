@@ -2,11 +2,11 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.services.client_data_retrieval_service import (
+from src.nodes.client_data_retrieval_service import (
     ClientDataRetrievalService
 )
 
-from src.services.summary_batch_preparation_service import (
+from src.nodes.summary_batch_preparation_service import (
     SummaryBatchPreparationService
 )
 

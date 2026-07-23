@@ -2,7 +2,7 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.services.final_churn_probability_service import (
+from src.nodes.final_churn_probability_service import (
     FinalChurnProbabilityService
 )
 

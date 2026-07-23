@@ -2,7 +2,7 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.services.updates_data_service import (
+from src.nodes.updates_data_service import (
     UpdatesDataService
 )
 
