@@ -50,6 +50,19 @@ class BaseEmbeddingRepository(BaseRepository):
 
         return None
 
+
+    def find_all(
+        self
+    ):
+        """
+        Retrieve all embedding records.
+        """
+
+        return self.provider.execute(
+            operation="select",
+            table=self.table_name
+        )
+
     # -------------------------------------------------
     # Create
     # -------------------------------------------------
