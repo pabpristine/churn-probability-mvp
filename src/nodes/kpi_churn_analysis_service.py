@@ -2,32 +2,33 @@ import json
 
 from src.base.base_service import BaseService
 from src.domain.entities.workflow_context import WorkflowContext
-from src.prompts.summary_churn_analysis_prompt import (
-    build_summary_churn_analysis_prompt
+from src.prompts.kpi_churn_analysis_prompt import (
+    build_kpi_churn_analysis_prompt
 )
 from src.providers.llm.groq_provider import GroqProvider
 
 
-class SummaryChurnAnalysisService(BaseService):
+class KPIChurnAnalysisService(BaseService):
     """
-    Service that generates summary/update-based churn analysis.
+    Service that generates KPI-based churn analysis.
 
     Input:
-    - current summary/update text
-    - retrieved top similar historical summary matches
+    - current KPI snapshot
+    - KPI interpretation
+    - retrieved top similar historical KPI matches
 
     Output:
-    - context.summary_probability
-    - context.summary_analysis
-    - context.summary_red_flags
-    - context.summary_bottlenecks
-    - context.summary_historical_insights
+    - context.kpi_probability
+    - context.kpi_analysis
+    - context.kpi_red_flags
+    - context.kpi_bottlenecks
+    - context.kpi_historical_insights
     """
 
     def __init__(self):
         super().__init__(
-            service_name="Summary Churn Analysis Service",
-            service_type="SUMMARY_CHURN_ANALYSIS"
+            service_name="KPI Churn Analysis Service",
+            service_type="KPI_CHURN_ANALYSIS"
         )
 
         self.groq_provider = GroqProvider()
@@ -40,21 +41,19 @@ class SummaryChurnAnalysisService(BaseService):
         Validate required inputs before LLM analysis.
         """
 
-        current_summary = (
-            context.updated_summary
-            or context.final_client_summary
-            or context.summary
-            or context.formatted_update_history
-        )
-
-        if not current_summary:
+        if not context.current_kpis:
             raise ValueError(
-                "Current summary/update text is required before summary churn analysis."
+                "Current KPIs are required before KPI churn analysis."
             )
 
-        if not context.summary_matches:
+        if not context.kpi_interpretation:
             raise ValueError(
-                "Summary matches are required before summary churn analysis."
+                "KPI interpretation is required before KPI churn analysis."
+            )
+
+        if not context.kpi_matches:
+            raise ValueError(
+                "KPI matches are required before KPI churn analysis."
             )
 
         return True
@@ -67,7 +66,7 @@ class SummaryChurnAnalysisService(BaseService):
         Call Groq in JSON mode and parse the returned JSON safely.
         """
 
-        raw_response = self.groq_provider.generate_response(
+        parsed_response = self.groq_provider.generate_response(
             prompt=prompt,
             system_prompt=(
                 "You are a churn-risk analysis assistant. "
@@ -78,25 +77,18 @@ class SummaryChurnAnalysisService(BaseService):
             response_format={"type": "json_object"}
         )
 
-        parsed_response = self.groq_provider.parse_response(
-            raw_response
-        )
-
         content = parsed_response["content"]
 
         try:
             result = json.loads(content)
         except Exception as exc:
             raise ValueError(
-                f"Failed to parse summary churn analysis JSON: {exc}"
+                f"Failed to parse KPI churn analysis JSON: {exc}"
             ) from exc
-
-        # Save token usage for audit/debugging.
-        context_usage = parsed_response.get("usage", {})
 
         return {
             "result": result,
-            "usage": context_usage,
+            "usage": parsed_response.get("usage", {}),
             "model": parsed_response.get("model")
         }
 
@@ -120,19 +112,19 @@ class SummaryChurnAnalysisService(BaseService):
 
         if missing_keys:
             raise ValueError(
-                f"Summary churn analysis missing keys: {missing_keys}"
+                f"KPI churn analysis missing keys: {missing_keys}"
             )
 
         probability = result["probability"]
 
         if not isinstance(probability, int):
             raise ValueError(
-                "Summary churn probability must be an integer."
+                "KPI churn probability must be an integer."
             )
 
         if probability < 0 or probability > 100:
             raise ValueError(
-                "Summary churn probability must be between 0 and 100."
+                "KPI churn probability must be between 0 and 100."
             )
 
         return {
@@ -153,34 +145,34 @@ class SummaryChurnAnalysisService(BaseService):
 
         self.validate(context)
 
-        prompt = build_summary_churn_analysis_prompt(context)
+        prompt = build_kpi_churn_analysis_prompt(context)
 
         llm_response = self._call_llm(prompt)
         validated_result = self._validate_llm_output(
             llm_response["result"]
         )
 
-        context.summary_probability = validated_result["probability"]
-        context.summary_analysis = validated_result["analysis"]
-        context.summary_red_flags = validated_result["red_flags"]
-        context.summary_bottlenecks = validated_result["bottlenecks"]
-        context.summary_historical_insights = (
+        context.kpi_probability = validated_result["probability"]
+        context.kpi_analysis = validated_result["analysis"]
+        context.kpi_red_flags = validated_result["red_flags"]
+        context.kpi_bottlenecks = validated_result["bottlenecks"]
+        context.kpi_historical_insights = (
             validated_result["historical_insights"]
         )
 
-        context.llm_usage["summary_prompt_tokens"] = (
+        context.llm_usage["kpi_prompt_tokens"] = (
             llm_response["usage"].get("prompt_tokens", 0)
         )
-        context.llm_usage["summary_completion_tokens"] = (
+        context.llm_usage["kpi_completion_tokens"] = (
             llm_response["usage"].get("completion_tokens", 0)
         )
-        context.llm_usage["summary_total_tokens"] = (
+        context.llm_usage["kpi_total_tokens"] = (
             llm_response["usage"].get("total_tokens", 0)
         )
 
-        context.metadata["summary_analysis_model"] = (
+        context.metadata["kpi_analysis_model"] = (
             llm_response["model"]
         )
-        context.metadata["summary_analysis_completed"] = True
+        context.metadata["kpi_analysis_completed"] = True
 
         return context

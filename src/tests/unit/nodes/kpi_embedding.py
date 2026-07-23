@@ -1,5 +1,5 @@
 from src.domain.entities.workflow_context import WorkflowContext
-from src.services.kpi_embedding import KPIEmbeddingService
+from src.nodes.kpi_embedding import KPIEmbeddingService
 
 
 def main():

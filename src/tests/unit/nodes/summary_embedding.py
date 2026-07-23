@@ -1,5 +1,5 @@
 from src.domain.entities.workflow_context import WorkflowContext
-from src.services.summary_embedding import (
+from src.nodes.summary_embedding import (
     SummaryEmbeddingService
 )
 

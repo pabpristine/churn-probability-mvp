@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from src.domain.entities.workflow_context import WorkflowContext
-from src.services.kpi_analysis_service import KPIAnalysisService
+from src.nodes.kpi_analysis_service import KPIAnalysisService
 
 
 # Unit test class for KPIAnalysisService.

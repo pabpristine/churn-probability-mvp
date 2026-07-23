@@ -2,7 +2,7 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.services.final_client_summary_service import (
+from src.nodes.final_client_summary_service import (
     FinalClientSummaryService
 )
 

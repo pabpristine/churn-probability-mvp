@@ -1,7 +1,7 @@
 from src.domain.entities.workflow_context import (
     WorkflowContext
 )
-from src.services.recommendation_generation_service import (
+from src.nodes.recommendation_generation_service import (
     RecommendationGenerationService
 )
 

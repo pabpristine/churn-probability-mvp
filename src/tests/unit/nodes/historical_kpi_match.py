@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from src.domain.entities.workflow_context import WorkflowContext
-from src.services.historical_kpi_match_service import (
+from src.nodes.historical_kpi_match_service import (
     HistoricalKPIMatchService,
 )
 

@@ -1,5 +1,5 @@
 from src.domain.entities.workflow_context import WorkflowContext
-from src.services.result_persistence_service import ResultPersistenceService
+from src.nodes.result_persistence_service import ResultPersistenceService
 
 
 def main():
