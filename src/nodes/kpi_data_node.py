@@ -9,7 +9,7 @@ from src.repositories.kpi_repository import KPIRepository
 # creating a new KPI record when missing,
 # normalizing records, and storing the final KPI dataset
 # in the workflow context.
-class KPIDataService(BaseService):
+class KPIDataNode(BaseService):
     """
     Fetch KPI data for a client, normalize numeric values,
     prepare a structured KPI dataset, and update the workflow context.

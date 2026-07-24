@@ -2,8 +2,8 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.nodes.updates_data_service import (
-    UpdatesDataService
+from src.nodes.updates_data_node import (
+    UpdatesDataNode
 )
 
 
@@ -22,7 +22,7 @@ def main():
     # Execute Service
     # ---------------------------------------------
 
-    service = UpdatesDataService()
+    service = UpdatesDataNode()
 
     context = service.execute(
         context

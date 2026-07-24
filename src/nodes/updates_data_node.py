@@ -3,7 +3,7 @@ from src.domain.entities.workflow_context import WorkflowContext
 from src.repositories.client_repository import ClientRepository
 
 
-class UpdatesDataService(BaseService):
+class UpdatesDataNode(BaseService):
     """
     Retrieves the previously stored summary
     for a client from Supabase.
