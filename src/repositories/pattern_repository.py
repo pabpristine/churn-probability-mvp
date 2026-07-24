@@ -32,19 +32,19 @@ class PatternRepository(BaseRepository):
     # Business Methods
     # -------------------------------------------------
 
-    def find_by_pattern_name(
+    def find_by_pattern_key(
         self,
-        pattern_name
+        pattern_key: str
     ):
-        """
-        Retrieve the interpretation
-        for a KPI pattern.
-        """
-
-        return self.provider.execute(
+        result = self.provider.execute(
             operation="select",
             table=self.table_name,
             filters={
-                "pattern_name": pattern_name
+                "pattern_key": pattern_key
             }
         )
+
+        if result and len(result) > 0:
+            return result[0]
+
+        return None

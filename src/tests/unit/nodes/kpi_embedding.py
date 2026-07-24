@@ -1,133 +1,109 @@
+from pprint import pprint
+
 from src.domain.entities.workflow_context import WorkflowContext
-from src.nodes.kpi_embedding import KPIEmbeddingService
+from src.nodes.kpi_embedding_node import KPIEmbeddingNode
 
 
-def main():
+def test_kpi_embedding_service():
 
-    print("\n========== KPI EMBEDDING SERVICE TEST ==========\n")
+    context = WorkflowContext(
+        client_id=1,
+        client_name="ABC Healthcare"
+    )
 
-    context = WorkflowContext()
-
-    # -------------------------------------------------
-    # Test Client
-    # -------------------------------------------------
-
-    context.client_id = 182135
-
-    context.client_name = "Yardworx Land Management"
-
-    # -------------------------------------------------
-    # Sample KPI Snapshot
-    # -------------------------------------------------
-
+    # Mock KPI data
     context.current_kpis = {
-
-        "program_type": "Landscaping",
-
+        "program_type": "Weight Loss",
         "program_stage": "Scaling",
-
         "campaign_status": "Active",
-
         "call_center_status": "Healthy",
 
-        "ad_spend_7d": 850,
+        "ad_spend_7d": 1200,
+        "ad_spend_mtd": 4500,
+        "ad_spend_30d": 18000,
 
-        "ad_spend_mtd": 3200,
+        "lead_cost_7d": 110,
+        "lead_cost_mtd": 95,
+        "lead_cost_30d": 80,
 
-        "ad_spend_30d": 5600,
-
-        "lead_cost_7d": 62,
-
-        "lead_cost_mtd": 59,
-
-        "lead_cost_30d": 61,
-
-        "appt_cost_7d": 145,
-
-        "appt_cost_mtd": 152,
-
-        "appt_cost_30d": 149
-
+        "appt_cost_7d": 210,
+        "appt_cost_mtd": 180,
+        "appt_cost_30d": 150
     }
-
-    # -------------------------------------------------
-    # Sample KPI Interpretation
-    # -------------------------------------------------
 
     context.kpi_interpretation = {
 
         "matched_pattern_names": [
-
-            "Stable Campaign",
-
-            "Healthy Lead Cost"
-
+            "CPL_WORSENING",
+            "CPAPT_WORSENING",
+            "HIGH_CPL_HIGH_CPAPT"
         ],
 
-        "overall_severity": "LOW",
-
-        "llm_summary": (
-            "Campaign is performing consistently. "
-            "Lead costs remain healthy while ad spend "
-            "is stable. Continue monitoring current trend."
-        ),
-
         "matched_patterns": [
-
             {
-
-                "interpretation":
-                "Lead acquisition costs are within the expected range."
-
+                "pattern_key": "CPL_WORSENING",
+                "interpretation": "Lead cost increasing.",
+                "category": "warning",
+                "severity": 3
             },
-
             {
-
-                "interpretation":
-                "Advertising spend is producing consistent results."
-
+                "pattern_key": "CPAPT_WORSENING",
+                "interpretation": "Appointment cost increasing.",
+                "category": "warning",
+                "severity": 3
             }
+        ],
 
-        ]
+        "overall_severity": "high",
 
+        "analysis": {
+            "overall_health": "High Risk",
+
+            "business_summary":
+                "Lead acquisition costs are increasing while "
+                "conversion efficiency is declining.",
+
+            "positive_signals": [
+                "Ad spend remains controlled."
+            ],
+
+            "risk_factors": [
+                "High CPL",
+                "High CPAPT"
+            ],
+
+            "recommendations": [
+                "Optimize campaigns.",
+                "Improve conversion funnel."
+            ]
+        }
     }
 
-    # -------------------------------------------------
-    # Execute Service
-    # -------------------------------------------------
+    service = KPIEmbeddingNode()
 
-    service = KPIEmbeddingService()
+    service.validate(context)
 
-    context = service.execute(
-        context
-    )
-
-    # -------------------------------------------------
-    # Print Results
-    # -------------------------------------------------
+    result = service.process(context)
 
     print("\n========== KPI EMBEDDING ==========\n")
 
-    print("Embedding Dimension")
-    print("-" * 50)
-    print(len(context.kpi_embedding))
+    pprint(result.kpi_embedding)
 
-    print("\nFirst 10 Values")
-    print("-" * 50)
-    print(context.kpi_embedding[:10])
+    print("\n========== EMBEDDING CONTENT ==========\n")
 
-    print("\nContent")
-    print("-" * 50)
-    print(context.kpi_embedding_content)
+    print(result.kpi_embedding_content)
 
-    print("\nMetadata")
-    print("-" * 50)
-    print(
-        context.metadata.get(
+    print("\n========== METADATA ==========\n")
+
+    pprint(
+        result.metadata.get(
             "kpi_embedding_metadata"
         )
     )
 
+    print("\n======================================\n")
+
 
 if __name__ == "__main__":
-    main()
+
+    test_kpi_embedding_service()

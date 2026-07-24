@@ -42,7 +42,7 @@ class WorkflowContext:
     # KPI Information
     # -------------------------------------------------
 
-    current_kpis: Dict[str, Any] = field(default_factory=dict)
+    # current_kpis: Dict[str, Any] = field(default_factory=dict)
 
     campaign_weights: Dict[str, Any] = field(default_factory=dict)
 
