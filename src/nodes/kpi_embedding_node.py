@@ -10,7 +10,7 @@ from src.repositories.kpi_embedding_repository import (
 )
 
 
-class KPIEmbeddingService(BaseService):
+class KPIEmbeddingNode(BaseService):
     """
     Generates a semantic embedding from the KPI interpretation,
     persists it in the vector table and updates the workflow context.
@@ -230,7 +230,7 @@ class KPIEmbeddingService(BaseService):
             current_kpis.get("appt_cost_30d")
         )
 
-        matched_pattern_names = interpretation.get(
+        matched_pattern_keys = interpretation.get(
             "matched_pattern_names",
             []
         )
@@ -240,12 +240,36 @@ class KPIEmbeddingService(BaseService):
             []
         )
 
-        llm_summary = interpretation.get(
-            "llm_summary"
+        analysis = interpretation.get(
+            "analysis",
+            {}
         )
 
         overall_severity = interpretation.get(
             "overall_severity"
+        )
+
+        overall_health = analysis.get(
+            "overall_health"
+        )
+
+        business_summary = analysis.get(
+            "business_summary"
+        )
+
+        positive_signals = analysis.get(
+            "positive_signals",
+            []
+        )
+
+        risk_factors = analysis.get(
+            "risk_factors",
+            []
+        )
+
+        recommendations = analysis.get(
+            "recommendations",
+            []
         )
 
         interpretation_lines = []
@@ -267,39 +291,98 @@ class KPIEmbeddingService(BaseService):
 
         content_parts = [
 
-            f"Client: {client_name or 'Unknown Client'}",
+            "========== CLIENT ==========",
 
-            f"Program Type: {program_type or 'unknown'}",
-
-            f"Program Stage: {program_stage or 'unknown'}",
-
-            f"Campaign Status: {campaign_status or 'unknown'}",
-
-            f"Call Center Status: {call_center_status or 'unknown'}",
+            f"Client Name: {client_name or 'Unknown Client'}",
 
             "",
 
+            "========== PROGRAM ==========",
+
+            f"Program Type: {program_type or 'Unknown'}",
+
+            f"Program Stage: {program_stage or 'Unknown'}",
+
+            f"Campaign Status: {campaign_status or 'Unknown'}",
+
+            f"Call Center Status: {call_center_status or 'Unknown'}",
+
+            "",
+
+            "========== CURRENT KPI METRICS ==========",
+
+            f"Ad Spend (7D): {ad_spend_7d}",
+            f"Ad Spend (MTD): {ad_spend_mtd}",
             f"Ad Spend (30D): {ad_spend_30d}",
 
+            "",
+
+            f"Lead Cost (7D): {lead_cost_7d}",
+            f"Lead Cost (MTD): {lead_cost_mtd}",
             f"Lead Cost (30D): {lead_cost_30d}",
 
+            "",
+
+            f"Appointment Cost (7D): {appt_cost_7d}",
+            f"Appointment Cost (MTD): {appt_cost_mtd}",
             f"Appointment Cost (30D): {appt_cost_30d}",
 
             "",
 
-            f"Recent Ad Spend: 7D={ad_spend_7d}, MTD={ad_spend_mtd}",
+            "========== DETECTED PATTERNS ==========",
 
-            f"Recent Lead Cost: 7D={lead_cost_7d}, MTD={lead_cost_mtd}",
+            ", ".join(matched_pattern_keys)
+            if matched_pattern_keys
+            else "None",
 
-            f"Recent Appointment Cost: 7D={appt_cost_7d}, MTD={appt_cost_mtd}",
+            "",
 
-            f"Pattern Key: {', '.join(matched_pattern_names) if matched_pattern_names else 'NONE'}",
+            "========== BUSINESS INTERPRETATIONS ==========",
 
-            f"Interpretation: {', '.join(interpretation_lines) if interpretation_lines else (llm_summary or 'No interpretation available')}",
+            "\n".join(interpretation_lines)
+            if interpretation_lines
+            else "None",
 
-            f"Severity: {overall_severity or 'unknown'}",
+            "",
 
-            f"KPI Summary: {llm_summary or 'No KPI summary available'}"
+            "========== LLM ANALYSIS ==========",
+
+            f"Overall Severity: {overall_severity or 'Unknown'}",
+
+            f"Overall Health: {overall_health or 'Unknown'}",
+
+            "",
+
+            "Business Summary:",
+
+            business_summary or "None",
+
+            "",
+
+            "Positive Signals:",
+
+            "\n".join(
+                f"- {signal}"
+                for signal in positive_signals
+            ) or "None",
+
+            "",
+
+            "Risk Factors:",
+
+            "\n".join(
+                f"- {risk}"
+                for risk in risk_factors
+            ) or "None",
+
+            "",
+
+            "Recommendations:",
+
+            "\n".join(
+                f"- {rec}"
+                for rec in recommendations
+            ) or "None"
 
         ]
 

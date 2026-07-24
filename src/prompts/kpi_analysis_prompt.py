@@ -1,47 +1,97 @@
 from typing import Any, Dict, List, Optional
+import json
 
 
-# System prompt used for KPI interpretation generation.
-# This defines the role and style the LLM should follow.
-KPI_ANALYSIS_SYSTEM_PROMPT = (
-    "You are a churn risk analysis assistant. "
-    "Summarize KPI pattern signals clearly and concisely."
-)
+# --------------------------------------------------------------------------
+# System Prompt
+# --------------------------------------------------------------------------
 
+KPI_ANALYSIS_SYSTEM_PROMPT = """
+You are an expert business KPI analyst specializing in customer health and
+churn prediction.
+
+Analyze the provided KPI metrics and detected business patterns.
+
+Return ONLY valid JSON.
+
+Do not include markdown.
+Do not include explanations.
+Do not wrap the response inside ```.
+
+Return this exact JSON structure:
+
+{
+    "overall_health": "",
+    "business_summary": "",
+    "positive_signals": [],
+    "risk_factors": [],
+    "recommendations": []
+}
+""".strip()
+
+
+# --------------------------------------------------------------------------
+# User Prompt Builder
+# --------------------------------------------------------------------------
 
 def build_kpi_analysis_prompt(
     client_name: Optional[str],
-    summary_text: str,
     current_kpis: Dict[str, Any],
-    matched_patterns: List[Dict[str, Any]]
+    matched_patterns: List[Dict[str, Any]],
+    overall_severity: str
 ) -> str:
     """
-    Build the user prompt for KPI analysis.
-
-    This prompt provides:
-    - client identity
-    - final summary text
-    - current KPI values
-    - matched KPI pattern rows
-
-    The LLM is then asked to generate a short business interpretation.
+    Build prompt for KPI analysis.
     """
 
+    pattern_summary = []
+
+    for pattern in matched_patterns:
+        pattern_summary.append(
+            {
+                "pattern": pattern.get("pattern_key"),
+                "category": pattern.get("category"),
+                "severity": pattern.get("severity"),
+                "interpretation": pattern.get("interpretation")
+            }
+        )
+
     return f"""
-Client Name: {client_name}
+Client Name:
+{client_name}
 
-Final Client Summary:
-{summary_text}
+Overall Severity:
+{overall_severity}
 
-Current KPIs:
-{current_kpis}
+Current KPI Values:
+{json.dumps(current_kpis, indent=2)}
 
-Matched KPI Patterns:
-{matched_patterns}
+Detected Business Patterns:
+{json.dumps(pattern_summary, indent=2)}
 
-Write a concise KPI interpretation in 4-6 sentences.
-Focus on:
-1. performance trend,
-2. main risks,
-3. most important business takeaway.
+Analyze the client's KPI performance and return ONLY valid JSON.
+
+The JSON must follow exactly this schema:
+
+{{
+    "overall_health": "Healthy | Moderate Risk | High Risk | Critical",
+    "business_summary": "2-3 sentence summary.",
+    "positive_signals": [
+        "signal 1",
+        "signal 2"
+    ],
+    "risk_factors": [
+        "risk 1",
+        "risk 2"
+    ],
+    "recommendations": [
+        "recommendation 1",
+        "recommendation 2",
+        "recommendation 3"
+    ]
+}}
+
+Do not return markdown.
+Do not return explanations.
+Return only JSON.
 """.strip()

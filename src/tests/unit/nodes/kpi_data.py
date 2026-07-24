@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from src.domain.entities.workflow_context import WorkflowContext
-from src.nodes.kpi_data_service import KPIDataService
+from src.nodes.kpi_data_node import KPIDataNode
 
 
 # Unit test class for KPIDataService.
@@ -14,7 +14,7 @@ class TestKPIDataService(unittest.TestCase):
         logging.disable(logging.CRITICAL)
 
         # Create the service instance to be tested.
-        self.service = KPIDataService()
+        self.service = KPIDataNode()
 
         # Replace the real repository with a mock object
         # so the test does not call the real database.
