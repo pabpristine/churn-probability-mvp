@@ -3,10 +3,13 @@ from src.domain.entities.workflow_context import WorkflowContext
 from src.repositories.client_repository import ClientRepository
 
 
-class FinalClientSummaryService(BaseService):
+class FinalClientSummaryNode(BaseService):
     """
-    Updates the latest generated summary and
-    satisfaction score in the client_updates table.
+    Saves the latest generated summary.
+
+    If the client already has a record in the
+    client_updates table, it updates the latest one.
+    Otherwise, it creates a new record.
     """
 
     def __init__(self):
@@ -27,14 +30,17 @@ class FinalClientSummaryService(BaseService):
         context: WorkflowContext
     ):
 
-        if context.previous_record is None:
-
+        if not context.client_id:
             raise ValueError(
-                "Previous client record not found."
+                "Client ID is required."
+            )
+
+        if not context.client_name:
+            raise ValueError(
+                "Client name is required."
             )
 
         if context.updated_summary is None:
-
             raise ValueError(
                 "Updated summary is missing."
             )
@@ -50,17 +56,16 @@ class FinalClientSummaryService(BaseService):
         context: WorkflowContext
     ) -> WorkflowContext:
 
-        update_id = context.previous_record["id"]
+        self.client_repository.save_summary(
 
-        data = {
-            "summary": context.updated_summary,
-            "satisfaction_score":
-                context.updated_satisfaction_score
-        }
+            client_id=context.client_id,
 
-        self.client_repository.update(
-            update_id,
-            data
+            client_name=context.client_name,
+
+            summary=context.updated_summary,
+
+            satisfaction_score=context.updated_satisfaction_score
+
         )
 
         return context

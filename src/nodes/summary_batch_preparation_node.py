@@ -3,7 +3,7 @@ from src.domain.entities.workflow_context import WorkflowContext
 from src.core.constants import SUMMARY_BATCH_SIZE
 
 
-class SummaryBatchPreparationService(BaseService):
+class SummaryBatchPreparationNode(BaseService):
     """
     Prepares batches of client updates for
     summary generation.

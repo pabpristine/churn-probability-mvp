@@ -19,7 +19,7 @@ from src.core.logging import setup_logger
 logger = setup_logger()
 
 
-class SummaryService(BaseService):
+class SummaryGenerationNode(BaseService):
     """
     Generates an updated client summary by
     iteratively processing all summary batches.
@@ -256,6 +256,7 @@ class SummaryService(BaseService):
                 f"{batch['batch_count']}"
 
             )
+            
 
             user_prompt = self.build_prompt(
 

@@ -57,15 +57,6 @@ class WorkflowContext:
     kpi_interpretation: Dict[str, Any] = field(default_factory=dict)
 
     # -------------------------------------------------
-    # AI Summary
-    # -------------------------------------------------
-
-    summary: Optional[str] = None
-    final_client_summary: Optional[str] = None
-
-    recommendations: List[str] = field(default_factory=list)
-
-    # -------------------------------------------------
     # Embeddings
     # -------------------------------------------------
 
@@ -90,18 +81,6 @@ class WorkflowContext:
     historical_matches: List[Dict[str, Any]] = field(default_factory=list)
 
     # -------------------------------------------------
-    # Churn Prediction
-    # -------------------------------------------------
-
-    summary_probability: Optional[float] = None
-
-    kpi_probability: Optional[float] = None
-
-    final_probability: Optional[float] = None
-
-    risk_level: Optional[str] = None
-
-    # -------------------------------------------------
     # Workflow Status
     # -------------------------------------------------
 
@@ -116,10 +95,6 @@ class WorkflowContext:
     previous_summary_timestamp: Optional[str] = None
 
     previous_satisfaction_score: Optional[int] = None
-
-    is_new_client: bool = False
-
-    previous_record: Optional[Dict[str, Any]] = None
 
     # -------------------------------------------------
     # Summary Batches

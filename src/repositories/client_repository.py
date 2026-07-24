@@ -141,20 +141,48 @@ class ClientRepository(BaseRepository):
         for a client.
         """
 
-        response = self.find_by_client_id(
+        return self.find_by_client_id(
+            client_id
+        )
+    
+    def save_summary(
+        self,
+        client_id,
+        client_name,
+        summary,
+        satisfaction_score
+    ):
+        """
+        Update the existing client summary.
+
+        If the client does not exist,
+        create a new record.
+        """
+
+        existing = self.find_by_client_id(
             client_id
         )
 
-        if not response:
-            return None
+        if existing:
 
-        latest = sorted(
-            response,
-            key=lambda x: x["timestamp"],
-            reverse=True
-        )[0]
+            return self.update(
+                existing["id"],
+                {
+                    "summary": summary,
+                    "satisfaction_score": satisfaction_score
+                }
+            )
 
-        return latest
+        else:
+
+            return self.save(
+                {
+                    "client_id": client_id,
+                    "client_name": client_name,
+                    "summary": summary,
+                    "satisfaction_score": satisfaction_score
+                }
+            )
 
     def update_embedding_status(
         self,
