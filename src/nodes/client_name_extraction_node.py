@@ -9,7 +9,7 @@ from src.prompts.client_name_extraction_prompt import (
 )
 
 
-class ClientNameExtractionService(BaseService):
+class ClientNameExtractionNode(BaseService):
     """
     Service to extract client name from user query.
 
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     context = WorkflowContext()
     context.metadata["user_query"] = user_query
 
-    service = ClientNameExtractionService()
+    service = ClientNameExtractionNode()
     result = service.execute(context)
 
     print("\nExtracted Client Name:", result.client_name)

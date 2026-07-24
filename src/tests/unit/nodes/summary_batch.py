@@ -2,8 +2,8 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.nodes.client_data_retrieval_service import (
-    ClientDataRetrievalService
+from src.nodes.client_data_retrieval_node import (
+    ClientDataRetrievalNode
 )
 
 from src.nodes.summary_batch_preparation_node import (
@@ -21,7 +21,7 @@ def main():
 
     # Retrieve client data
     context = (
-        ClientDataRetrievalService()
+        ClientDataRetrievalNode()
         .execute(context)
     )
 

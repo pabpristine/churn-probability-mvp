@@ -4,8 +4,8 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.nodes.client_data_retrieval_service import (
-    ClientDataRetrievalService
+from src.nodes.client_data_retrieval_node import (
+    ClientDataRetrievalNode
 )
 
 
@@ -17,7 +17,7 @@ def main():
         "Yardworx Land Management"
     )
 
-    service = ClientDataRetrievalService()
+    service = ClientDataRetrievalNode()
 
     context = service.execute(
         context

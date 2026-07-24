@@ -7,7 +7,7 @@ from src.providers.external.google_sheet_provider import (
 )
 
 
-class ClientDataRetrievalService(BaseService):
+class ClientDataRetrievalNode(BaseService):
     """
     Retrieves client information from Google Sheets.
 

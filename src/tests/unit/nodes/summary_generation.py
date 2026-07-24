@@ -2,12 +2,12 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.nodes.client_data_retrieval_service import (
-    ClientDataRetrievalService
+from src.nodes.client_data_retrieval_node import (
+    ClientDataRetrievalNode
 )
 
-from src.nodes.updates_data_service import (
-    UpdatesDataService
+from src.nodes.updates_data_node import (
+    UpdatesDataNode
 )
 
 from src.nodes.summary_batch_preparation_node import (
@@ -40,7 +40,7 @@ def main():
     print("Step 1 : Retrieving Client Data")
 
     context = (
-        ClientDataRetrievalService()
+        ClientDataRetrievalNode()
         .execute(context)
     )
 
@@ -51,7 +51,7 @@ def main():
     print("Step 2 : Retrieving Previous Summary")
 
     context = (
-        UpdatesDataService()
+        UpdatesDataNode()
         .execute(context)
     )
 

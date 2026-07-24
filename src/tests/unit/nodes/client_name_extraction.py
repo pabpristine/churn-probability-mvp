@@ -1,7 +1,7 @@
 from src.domain.entities.workflow_context import WorkflowContext
 
-from src.nodes.client_name_extraction_service import (
-    ClientNameExtractionService
+from src.nodes.client_name_extraction_node import (
+    ClientNameExtractionNode
 )
 
 
@@ -33,7 +33,7 @@ def main():
 
     ]
 
-    service = ClientNameExtractionService()
+    service = ClientNameExtractionNode()
 
     for index, query in enumerate(
         test_queries,
