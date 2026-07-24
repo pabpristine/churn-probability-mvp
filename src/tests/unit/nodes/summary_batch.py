@@ -6,8 +6,8 @@ from src.nodes.client_data_retrieval_service import (
     ClientDataRetrievalService
 )
 
-from src.nodes.summary_batch_preparation_service import (
-    SummaryBatchPreparationService
+from src.nodes.summary_batch_preparation_node import (
+    SummaryBatchPreparationNode
 )
 
 
@@ -27,7 +27,7 @@ def main():
 
     # Prepare batches
     context = (
-        SummaryBatchPreparationService()
+        SummaryBatchPreparationNode()
         .execute(context)
     )
 

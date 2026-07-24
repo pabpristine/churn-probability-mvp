@@ -8,7 +8,7 @@ from src.repositories.summary_embedding_repository import (
 )
 
 
-class SummaryEmbeddingService(BaseService):
+class SummaryEmbeddingNode(BaseService):
     """
     Generates and persists the latest summary embedding.
     """
@@ -39,7 +39,7 @@ class SummaryEmbeddingService(BaseService):
                 "Client ID is required."
             )
 
-        if not context.summary:
+        if not context.updated_summary:
             raise ValueError(
                 "Summary is required."
             )
@@ -60,7 +60,7 @@ class SummaryEmbeddingService(BaseService):
         # ------------------------------------------
 
         embedding = self.embedding_provider.generate_embedding(
-            context.summary
+            context.updated_summary
         )
 
         # Provider may return either a list or dict
@@ -106,7 +106,7 @@ class SummaryEmbeddingService(BaseService):
 
                 {
 
-                    "content": context.summary,
+                    "content": context.updated_summary,
 
                     "embedding": embedding,
 
@@ -124,7 +124,7 @@ class SummaryEmbeddingService(BaseService):
 
             self.summary_embedding_repository.save_embedding(
 
-                context.summary,
+                context.updated_summary,
 
                 embedding,
 
@@ -139,7 +139,7 @@ class SummaryEmbeddingService(BaseService):
         context.summary_embedding = embedding
 
         context.summary_embedding_content = (
-            context.summary
+            context.updated_summary
         )
 
         context.metadata[

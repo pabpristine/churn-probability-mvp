@@ -2,8 +2,8 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.nodes.final_client_summary_service import (
-    FinalClientSummaryService
+from src.nodes.final_client_summary_node import (
+    FinalClientSummaryNode
 )
 
 from src.repositories.client_repository import (
@@ -19,9 +19,7 @@ def main():
 
     repository = ClientRepository()
 
-    context.previous_record = repository.find_by_client_id(
-        context.client_id
-    )
+    context.client_name = "Yardworx Land Management"
 
     context.updated_summary = (
         "This is a test summary generated "
@@ -30,7 +28,7 @@ def main():
 
     context.updated_satisfaction_score = 90
 
-    service = FinalClientSummaryService()
+    service = FinalClientSummaryNode()
 
     service.execute(
         context

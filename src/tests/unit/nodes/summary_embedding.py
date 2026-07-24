@@ -1,6 +1,6 @@
 from src.domain.entities.workflow_context import WorkflowContext
-from src.nodes.summary_embedding import (
-    SummaryEmbeddingService
+from src.nodes.summary_embedding_node import (
+    SummaryEmbeddingNode
 )
 
 
@@ -12,7 +12,7 @@ def main():
 
     context.client_name = "Yardworx Land Management"
 
-    context.summary = """
+    context.updated_summary = """
     Yardworx Land Management continues to make
     steady progress with its marketing campaign.
     The client has received multiple qualified
@@ -20,7 +20,7 @@ def main():
     with the team.
     """
 
-    service = SummaryEmbeddingService()
+    service = SummaryEmbeddingNode()
 
     context = service.execute(
         context

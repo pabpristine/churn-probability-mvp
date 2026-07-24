@@ -10,12 +10,12 @@ from src.nodes.updates_data_service import (
     UpdatesDataService
 )
 
-from src.nodes.summary_batch_preparation_service import (
-    SummaryBatchPreparationService
+from src.nodes.summary_batch_preparation_node import (
+    SummaryBatchPreparationNode
 )
 
-from src.nodes.summary_service import (
-    SummaryService
+from src.nodes.summary_generation_node import (
+    SummaryGenerationNode
 )
 
 
@@ -62,7 +62,7 @@ def main():
     print("Step 3 : Preparing Summary Batches")
 
     context = (
-        SummaryBatchPreparationService()
+        SummaryBatchPreparationNode()
         .execute(context)
     )
 
@@ -73,7 +73,7 @@ def main():
     print("Step 4 : Generating Updated Summary")
 
     context = (
-        SummaryService()
+        SummaryGenerationNode()
         .execute(context)
     )
 
