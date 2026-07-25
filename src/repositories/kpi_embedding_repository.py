@@ -1,11 +1,7 @@
-from src.base.base_embedding_repository import (
-    BaseEmbeddingRepository
-)
+from src.base.base_embedding_repository import BaseEmbeddingRepository
 
 
-class KPIEmbeddingRepository(
-    BaseEmbeddingRepository
-):
+class KPIEmbeddingRepository(BaseEmbeddingRepository):
     """
     Repository responsible for storing and
     retrieving KPI embeddings.
@@ -15,7 +11,6 @@ class KPIEmbeddingRepository(
     """
 
     def __init__(self):
-
         super().__init__(
             repository_name="KPI Embedding Repository",
             table_name="client_kpi_embeddings"
@@ -31,17 +26,14 @@ class KPIEmbeddingRepository(
         Calls the Supabase RPC function that runs KPI vector similarity search.
         """
 
-        response = (
-            self.supabase
-            .rpc(
-                "match_historical_kpis",
-                {
-                    "query_embedding": query_embedding,
-                    "match_threshold": match_threshold,
-                    "match_count": match_count,
-                }
-            )
-            .execute()
+        response = self.provider.execute(
+            operation="rpc",
+            function_name="match_historical_kpis",
+            parameters={
+                "query_embedding": query_embedding,
+                "match_threshold": match_threshold,
+                "match_count": match_count,
+            }
         )
 
-        return response.data or []
+        return getattr(response, "data", response) or []
