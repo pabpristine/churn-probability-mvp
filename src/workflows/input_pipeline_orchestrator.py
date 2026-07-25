@@ -1,8 +1,8 @@
 from src.domain.entities.workflow_context import WorkflowContext
-from src.nodes.client_name_extraction_service import ClientNameExtractionService
-from src.nodes.client_data_retrieval_service import ClientDataRetrievalService
-from src.nodes.updates_data_service import UpdatesDataService
-from src.nodes.kpi_data_service import KPIDataService
+from src.services.client_name_extraction_service import ClientNameExtractionService
+from src.services.client_data_retrieval_service import ClientDataRetrievalService
+from src.services.updates_data_service import UpdatesDataService
+from src.services.kpi_data_service import KPIDataService
 
 
 class InputPipelineOrchestrator:

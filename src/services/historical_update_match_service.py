@@ -1,4 +1,3 @@
-# src/services/historical_update_match_service.py
 from src.base.base_service import BaseService
 from src.domain.entities.workflow_context import WorkflowContext
 from src.repositories.client_update_embedding_repository import ClientUpdateEmbeddingRepository
@@ -11,7 +10,7 @@ class HistoricalUpdateMatchService(BaseService):
 
     Requires the Supabase function:
     public.match_historical_clients(
-        query_embedding vector(384),
+        query_embedding vector(768),
         match_threshold float,
         match_count int
     )
@@ -44,15 +43,14 @@ class HistoricalUpdateMatchService(BaseService):
         """
         A summary embedding must be generated before historical update retrieval.
         """
-
         if not context.summary_embedding:
             raise ValueError(
                 "Summary embedding is required before historical update matching."
             )
 
-        if len(context.summary_embedding) != 384:
+        if len(context.summary_embedding) != 768:
             raise ValueError(
-                "Summary embedding must contain exactly 384 dimensions."
+                "Summary embedding must contain exactly 768 dimensions."
             )
 
         return True
@@ -64,7 +62,6 @@ class HistoricalUpdateMatchService(BaseService):
         """
         Call the SQL RPC function and store the best historical update matches.
         """
-
         self.validate(context)
 
         matches = (
@@ -78,12 +75,7 @@ class HistoricalUpdateMatchService(BaseService):
 
         context.update_matches = matches or []
 
-        context.metadata["update_match_count"] = len(
-            context.update_matches
-        )
-
-        context.metadata["update_match_threshold"] = (
-            self.match_threshold
-        )
+        context.metadata["update_match_count"] = len(context.update_matches)
+        context.metadata["update_match_threshold"] = self.match_threshold
 
         return context

@@ -15,7 +15,7 @@ class HuggingFaceProvider(BaseProvider):
     This provider contains NO business logic.
     """
 
-    EXPECTED_DIMENSION = 384
+    EXPECTED_DIMENSION = 768
     _model = None
 
     def __init__(self):

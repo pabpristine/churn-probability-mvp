@@ -10,6 +10,8 @@ class KPIEmbeddingRepository(BaseEmbeddingRepository):
     from BaseEmbeddingRepository.
     """
 
+    EXPECTED_DIMENSION = 768
+
     def __init__(self):
         super().__init__(
             repository_name="KPI Embedding Repository",
@@ -25,6 +27,15 @@ class KPIEmbeddingRepository(BaseEmbeddingRepository):
         """
         Calls the Supabase RPC function that runs KPI vector similarity search.
         """
+
+        if not isinstance(query_embedding, list):
+            raise ValueError("Embedding must be a list.")
+
+        if len(query_embedding) != self.EXPECTED_DIMENSION:
+            raise ValueError(
+                f"Invalid embedding dimension: expected "
+                f"{self.EXPECTED_DIMENSION}, got {len(query_embedding)}"
+            )
 
         response = self.provider.execute(
             operation="rpc",

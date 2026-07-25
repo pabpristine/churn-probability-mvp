@@ -343,6 +343,14 @@ class SummaryService(BaseService):
 
         )
 
+        context.summary = current_summary
+        context.final_client_summary = current_summary
+
+        # backward compatibility during refactor
+        context.updated_summary = current_summary
+        context.updated_satisfaction_score = current_score
+        context.final_client_summary = current_summary
+
         context.llm_usage = {
 
             "prompt_tokens":

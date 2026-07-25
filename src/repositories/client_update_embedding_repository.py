@@ -2,7 +2,7 @@ from src.base.base_repository import BaseRepository
 
 
 class ClientUpdateEmbeddingRepository(BaseRepository):
-    EXPECTED_DIMENSION = 384
+    EXPECTED_DIMENSION = 768
 
     def __init__(self):
         super().__init__(
@@ -15,7 +15,8 @@ class ClientUpdateEmbeddingRepository(BaseRepository):
             raise ValueError("Embedding must be a list.")
         if len(embedding) != self.EXPECTED_DIMENSION:
             raise ValueError(
-                f"Invalid embedding dimension: expected {self.EXPECTED_DIMENSION}, got {len(embedding)}"
+                f"Invalid embedding dimension: expected "
+                f"{self.EXPECTED_DIMENSION}, got {len(embedding)}"
             )
 
     def match_historical_clients(

@@ -8,11 +8,11 @@ from src.workflows.historical_retrieval_orchestrator import (
     HistoricalRetrievalOrchestrator,
 )
 
-from src.nodes.summary_batch_preparation_node import SummaryBatchPreparationNode
-from src.nodes.summary_generation_node import SummaryGenerationNode
-from src.nodes.kpi_analysis_node import KPIAnalysisNode
-from src.nodes.summary_embedding_node import SummaryEmbeddingNode
-from src.nodes.kpi_embedding_node import KPIEmbeddingNode
+from src.services.summary_batch_preparation_service import SummaryBatchPreparationService
+from src.services.summary_service import SummaryService
+from src.services.kpi_analysis_service import KPIAnalysisService
+from src.services.summary_embedding import SummaryEmbeddingService
+from src.services.kpi_embedding import KPIEmbeddingService
 
 
 @pytest.mark.skipif(
@@ -38,30 +38,30 @@ def test_historical_retrieval_flow_real_execution():
     assert context.kpi_dataset is not None
 
     # Step 2: Prepare summary batches
-    context = SummaryBatchPreparationNode().execute(context)
+    context = SummaryBatchPreparationService().execute(context)
     assert context.summary_batches is not None
     assert isinstance(context.summary_batches, list)
     assert len(context.summary_batches) > 0
 
     # Step 3: Generate updated summary
-    context = SummaryGenerationNode().execute(context)
+    context = SummaryService().execute(context)
     assert context.updated_summary is not None
     assert isinstance(context.updated_summary, str)
     assert context.updated_summary.strip() != ""
 
     # Step 4: Generate KPI interpretation
-    context = KPIAnalysisNode().execute(context)
+    context = KPIAnalysisService().execute(context)
     assert context.kpi_interpretation is not None
     assert isinstance(context.kpi_interpretation, dict)
 
     # Step 5: Generate embeddings
-    context = SummaryEmbeddingNode().execute(context)
-    context = KPIEmbeddingNode().execute(context)
+    context = SummaryEmbeddingService().execute(context)
+    context = KPIEmbeddingService().execute(context)
 
     assert context.summary_embedding is not None
     assert context.kpi_embedding is not None
-    assert len(context.summary_embedding) == 384
-    assert len(context.kpi_embedding) == 384
+    assert len(context.summary_embedding) == 768
+    assert len(context.kpi_embedding) == 768
 
     # Step 6: Historical retrieval flow
     historical_orchestrator = HistoricalRetrievalOrchestrator()
