@@ -14,7 +14,6 @@ class SummaryEmbeddingService(BaseService):
     """
 
     def __init__(self):
-
         super().__init__(
             service_name="Summary Embedding Service",
             service_type="SUMMARY_EMBEDDING"
@@ -23,6 +22,16 @@ class SummaryEmbeddingService(BaseService):
         self.embedding_provider = HuggingFaceProvider()
         self.summary_embedding_repository = (
             SummaryEmbeddingRepository()
+        )
+
+    def _get_summary_text(
+        self,
+        context: WorkflowContext
+    ):
+        return (
+            getattr(context, "updated_summary", None)
+            or getattr(context, "final_client_summary", None)
+            or getattr(context, "summary", None)
         )
 
     # -------------------------------------------------
@@ -39,9 +48,10 @@ class SummaryEmbeddingService(BaseService):
                 "Client ID is required."
             )
 
-        if not context.summary:
+        summary_text = self._get_summary_text(context)
+        if not summary_text:
             raise ValueError(
-                "Summary is required."
+                "updated_summary, final_client_summary, or summary is required."
             )
 
         return True
@@ -55,12 +65,14 @@ class SummaryEmbeddingService(BaseService):
         context: WorkflowContext
     ) -> WorkflowContext:
 
+        summary_text = self._get_summary_text(context)
+
         # ------------------------------------------
         # Generate Embedding
         # ------------------------------------------
 
         embedding = self.embedding_provider.generate_embedding(
-            context.summary
+            summary_text
         )
 
         # Provider may return either a list or dict
@@ -76,11 +88,8 @@ class SummaryEmbeddingService(BaseService):
         # ------------------------------------------
 
         metadata = {
-
             "client_id": context.client_id,
-
             "source": "summary"
-
         }
 
         # ------------------------------------------
@@ -101,19 +110,12 @@ class SummaryEmbeddingService(BaseService):
         if existing:
 
             self.summary_embedding_repository.update_embedding(
-
                 existing["id"],
-
                 {
-
-                    "content": context.summary,
-
+                    "content": summary_text,
                     "embedding": embedding,
-
                     "metadata": metadata
-
                 }
-
             )
 
         # ------------------------------------------
@@ -123,13 +125,9 @@ class SummaryEmbeddingService(BaseService):
         else:
 
             self.summary_embedding_repository.save_embedding(
-
-                context.summary,
-
+                summary_text,
                 embedding,
-
                 metadata
-
             )
 
         # ------------------------------------------
@@ -137,10 +135,7 @@ class SummaryEmbeddingService(BaseService):
         # ------------------------------------------
 
         context.summary_embedding = embedding
-
-        context.summary_embedding_content = (
-            context.summary
-        )
+        context.summary_embedding_content = summary_text
 
         context.metadata[
             "summary_embedding_metadata"

@@ -1,10 +1,12 @@
 from typing import List
 
+
 import numpy as np
-from sentence_transformers import SentenceTransformer
+
 
 from src.base.base_provider import BaseProvider
 from src.core.settings import settings
+
 
 
 class HuggingFaceProvider(BaseProvider):
@@ -36,6 +38,8 @@ class HuggingFaceProvider(BaseProvider):
         super().connect()
 
         if HuggingFaceProvider._model is None:
+            from sentence_transformers import SentenceTransformer
+
             HuggingFaceProvider._model = SentenceTransformer(
                 settings.embedding_model
             )
