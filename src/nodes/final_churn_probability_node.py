@@ -5,7 +5,7 @@ from src.repositories.campaign_stage_repository import (
 )
 
 
-class FinalChurnProbabilityService(BaseService):
+class FinalChurnProbabilityNode(BaseService):
     """
     Calculates the final churn probability
     using the predefined business rules.

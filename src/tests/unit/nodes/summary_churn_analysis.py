@@ -3,8 +3,8 @@ import unittest
 from unittest.mock import patch
 
 from src.domain.entities.workflow_context import WorkflowContext
-from src.nodes.summary_churn_analysis_service import (
-    SummaryChurnAnalysisService
+from src.nodes.summary_churn_analysis_node import (
+    SummaryChurnAnalysisNode
 )
 
 
@@ -56,7 +56,7 @@ class TestSummaryChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = SummaryChurnAnalysisService()
+        service = SummaryChurnAnalysisNode()
 
         context = WorkflowContext()
         context.client_id = "182135"
@@ -164,7 +164,7 @@ class TestSummaryChurnAnalysisService(unittest.TestCase):
         Service should fail when no current summary/update text exists.
         """
 
-        service = SummaryChurnAnalysisService()
+        service = SummaryChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -193,7 +193,7 @@ class TestSummaryChurnAnalysisService(unittest.TestCase):
         Service should fail when historical summary matches are missing.
         """
 
-        service = SummaryChurnAnalysisService()
+        service = SummaryChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -238,7 +238,7 @@ class TestSummaryChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = SummaryChurnAnalysisService()
+        service = SummaryChurnAnalysisNode()
 
         context = WorkflowContext()
         context.updated_summary = "Current client summary text"
@@ -290,7 +290,7 @@ class TestSummaryChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = SummaryChurnAnalysisService()
+        service = SummaryChurnAnalysisNode()
 
         context = WorkflowContext()
         context.updated_summary = "Current client summary text"
@@ -347,7 +347,7 @@ class TestSummaryChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = SummaryChurnAnalysisService()
+        service = SummaryChurnAnalysisNode()
 
         context = WorkflowContext()
         context.updated_summary = "Current client summary text"
@@ -410,7 +410,7 @@ class TestSummaryChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = SummaryChurnAnalysisService()
+        service = SummaryChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -455,7 +455,7 @@ class TestSummaryChurnAnalysisService(unittest.TestCase):
             "Groq API unavailable"
         )
 
-        service = SummaryChurnAnalysisService()
+        service = SummaryChurnAnalysisNode()
 
         context = WorkflowContext()
 

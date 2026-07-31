@@ -3,7 +3,7 @@ from src.domain.entities.workflow_context import WorkflowContext
 from src.repositories.client_repository import ClientRepository
 
 
-class ResultPersistenceService(BaseService):
+class ResultPersistenceNode(BaseService):
     """
     Persists the final workflow output into the
     client_updates table.

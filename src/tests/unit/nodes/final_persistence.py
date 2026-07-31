@@ -1,5 +1,5 @@
 from src.domain.entities.workflow_context import WorkflowContext
-from src.nodes.result_persistence_service import ResultPersistenceService
+from src.nodes.result_persistence_node import ResultPersistenceNode
 
 
 def main():
@@ -35,7 +35,7 @@ def main():
 
     context.final_probability = 82.4
 
-    service = ResultPersistenceService()
+    service = ResultPersistenceNode()
 
     service.execute(context)
 

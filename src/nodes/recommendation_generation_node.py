@@ -13,7 +13,7 @@ from src.providers.llm.groq_provider import (
 )
 
 
-class RecommendationGenerationService(BaseService):
+class RecommendationGenerationNode(BaseService):
 
     def __init__(self):
 
@@ -65,12 +65,11 @@ class RecommendationGenerationService(BaseService):
         context: WorkflowContext
     ):
 
+        current_kpis = context.kpi_dataset.get("current_kpis", {})
+
         kpis = "\n".join(
-
             f"{key}: {value}"
-
-            for key, value in context.current_kpis.items()
-
+            for key, value in current_kpis.items()
         )
 
         red_flags = "\n".join(

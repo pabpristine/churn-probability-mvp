@@ -3,8 +3,8 @@ import unittest
 from unittest.mock import patch
 
 from src.domain.entities.workflow_context import WorkflowContext
-from src.nodes.kpi_churn_analysis_service import (
-    KPIChurnAnalysisService
+from src.nodes.kpi_churn_analysis_node import (
+    KPIChurnAnalysisNode
 )
 
 
@@ -29,7 +29,7 @@ VALID_KPI_RESULT = {
 }
 
 
-class TestKPIChurnAnalysisService(unittest.TestCase):
+class TestKPIChurnAnalysisNode(unittest.TestCase):
 
     @patch(
         "src.services.kpi_churn_analysis_service.GroqProvider"
@@ -56,7 +56,7 @@ class TestKPIChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = KPIChurnAnalysisService()
+        service = KPIChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -146,7 +146,7 @@ class TestKPIChurnAnalysisService(unittest.TestCase):
 
     def test_missing_current_kpis_raises_value_error(self):
 
-        service = KPIChurnAnalysisService()
+        service = KPIChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -178,7 +178,7 @@ class TestKPIChurnAnalysisService(unittest.TestCase):
 
     def test_missing_kpi_interpretation_raises_value_error(self):
 
-        service = KPIChurnAnalysisService()
+        service = KPIChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -210,7 +210,7 @@ class TestKPIChurnAnalysisService(unittest.TestCase):
 
     def test_missing_kpi_matches_raises_value_error(self):
 
-        service = KPIChurnAnalysisService()
+        service = KPIChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -259,7 +259,7 @@ class TestKPIChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = KPIChurnAnalysisService()
+        service = KPIChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -319,7 +319,7 @@ class TestKPIChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = KPIChurnAnalysisService()
+        service = KPIChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -390,7 +390,7 @@ class TestKPIChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = KPIChurnAnalysisService()
+        service = KPIChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -460,7 +460,7 @@ class TestKPIChurnAnalysisService(unittest.TestCase):
             "finish_reason": "stop"
         }
 
-        service = KPIChurnAnalysisService()
+        service = KPIChurnAnalysisNode()
 
         context = WorkflowContext()
 
@@ -510,7 +510,7 @@ class TestKPIChurnAnalysisService(unittest.TestCase):
             "Groq API unavailable"
         )
 
-        service = KPIChurnAnalysisService()
+        service = KPIChurnAnalysisNode()
 
         context = WorkflowContext()
 
