@@ -10,39 +10,44 @@ def test_ai_workflow():
     )
 
     print("\n========== CLIENT ==========")
-    print("Client ID:", context.client_id)
-    print("Client Name:", context.client_name)
+    print("Client:", context.client_name)
 
     print("\n========== SUMMARY ==========")
     print(context.updated_summary)
-    print("Satisfaction Score:", context.updated_satisfaction_score)
 
     print("\n========== KPI ==========")
     print(context.kpi_interpretation)
 
+    print("\n========== SUMMARY MATCHES ==========")
+    print(len(context.summary_matches))
+
+    if context.summary_matches:
+        print(context.summary_matches[0])
+
+    print("\n========== KPI MATCHES ==========")
+    print(len(context.kpi_matches))
+
+    if context.kpi_matches:
+        print(context.kpi_matches[0])
+
     print("\n========== SUMMARY CHURN ==========")
-    print("Probability:", context.summary_probability)
-    print("Analysis:", context.summary_analysis)
+    print(context.summary_probability)
+    print(context.summary_analysis)
 
     print("\n========== KPI CHURN ==========")
-    print("Probability:", context.kpi_probability)
-    print("Analysis:", context.kpi_analysis)
+    print(context.kpi_probability)
+    print(context.kpi_analysis)
 
     print("\n========== FINAL CHURN ==========")
-    print("Probability:", context.final_probability)
-    print("Risk Level:", context.risk_level)
-    print("Analysis:", context.final_analysis)
+    print(context.final_probability)
+    print(context.risk_level)
+    print(context.final_analysis)
 
     print("\n========== RECOMMENDATIONS ==========")
-    for index, recommendation in enumerate(context.recommendations, start=1):
-        print(f"{index}. {recommendation}")
 
-    print("\n========== LLM USAGE ==========")
-    print(context.llm_usage)
-
-    print("\n========== METADATA ==========")
-    print(context.metadata)
-
+    for recommendation in context.recommendations:
+        print("-", recommendation)
 
 if __name__ == "__main__":
+    print("Starting AI Workflow Integration Test...\n")
     test_ai_workflow()
