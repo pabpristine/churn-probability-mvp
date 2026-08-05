@@ -64,7 +64,7 @@ Client ID: {context.client_id or 'N/A'}
 Client Name: {context.client_name or 'N/A'}
 
 Current KPI Snapshot
-{context.current_kpis or {}}
+{context.kpi_dataset.get("current_kpis", {})}
 
 Current KPI Interpretation
 {context.kpi_interpretation or {}}

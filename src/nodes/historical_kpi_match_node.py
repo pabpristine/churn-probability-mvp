@@ -3,14 +3,14 @@ from src.domain.entities.workflow_context import WorkflowContext
 from src.repositories.kpi_embedding_repository import KPIEmbeddingRepository
 
 
-class HistoricalKPIMatchService(BaseService):
+class HistoricalKPIMatchNode(BaseService):
     """
     Retrieves historical client KPI profiles that are semantically similar
     to the current client's generated KPI embedding.
 
     Requires the Supabase function:
     public.match_historical_kpis(
-        query_embedding vector(384),
+        query_embedding vector(768),
         match_threshold float,
         match_count int
     )
@@ -32,9 +32,7 @@ class HistoricalKPIMatchService(BaseService):
         self.match_threshold = match_threshold
         self.match_count = match_count
 
-        self.kpi_embedding_repository = (
-            KPIEmbeddingRepository()
-        )
+        self.kpi_embedding_repository = KPIEmbeddingRepository()
 
     def validate(
         self,
@@ -43,15 +41,14 @@ class HistoricalKPIMatchService(BaseService):
         """
         A KPI embedding must be generated before historical retrieval.
         """
-
         if not context.kpi_embedding:
             raise ValueError(
                 "KPI embedding is required before historical KPI matching."
             )
 
-        if len(context.kpi_embedding) != 384:
+        if len(context.kpi_embedding) != 768:
             raise ValueError(
-                "KPI embedding must contain exactly 384 dimensions."
+                "KPI embedding must contain exactly 768 dimensions."
             )
 
         return True
@@ -63,7 +60,6 @@ class HistoricalKPIMatchService(BaseService):
         """
         Call the SQL RPC function and store the best historical KPI matches.
         """
-
         self.validate(context)
 
         matches = (
@@ -77,12 +73,7 @@ class HistoricalKPIMatchService(BaseService):
 
         context.kpi_matches = matches or []
 
-        context.metadata["kpi_match_count"] = len(
-            context.kpi_matches
-        )
-
-        context.metadata["kpi_match_threshold"] = (
-            self.match_threshold
-        )
+        context.metadata["kpi_match_count"] = len(context.kpi_matches)
+        context.metadata["kpi_match_threshold"] = self.match_threshold
 
         return context

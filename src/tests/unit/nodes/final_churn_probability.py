@@ -2,8 +2,8 @@ from src.domain.entities.workflow_context import (
     WorkflowContext
 )
 
-from src.nodes.final_churn_probability_service import (
-    FinalChurnProbabilityService
+from src.nodes.final_churn_probability_node import (
+    FinalChurnProbabilityNode
 )
 
 
@@ -75,7 +75,7 @@ def main():
     # Execute Service
     # ---------------------------------------------
 
-    service = FinalChurnProbabilityService()
+    service = FinalChurnProbabilityNode()
 
     context = service.execute(
         context

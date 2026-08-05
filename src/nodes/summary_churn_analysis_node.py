@@ -8,7 +8,7 @@ from src.prompts.summary_churn_analysis_prompt import (
 from src.providers.llm.groq_provider import GroqProvider
 
 
-class SummaryChurnAnalysisService(BaseService):
+class SummaryChurnAnalysisNode(BaseService):
     """
     Service that generates summary/update-based churn analysis.
 
@@ -42,9 +42,6 @@ class SummaryChurnAnalysisService(BaseService):
 
         current_summary = (
             context.updated_summary
-            or context.final_client_summary
-            or context.summary
-            or context.formatted_update_history
         )
 
         if not current_summary:

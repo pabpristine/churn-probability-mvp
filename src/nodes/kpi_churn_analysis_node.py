@@ -8,7 +8,7 @@ from src.prompts.kpi_churn_analysis_prompt import (
 from src.providers.llm.groq_provider import GroqProvider
 
 
-class KPIChurnAnalysisService(BaseService):
+class KPIChurnAnalysisNode(BaseService):
     """
     Service that generates KPI-based churn analysis.
 
@@ -41,9 +41,14 @@ class KPIChurnAnalysisService(BaseService):
         Validate required inputs before LLM analysis.
         """
 
-        if not context.current_kpis:
+        if not context.kpi_dataset:
             raise ValueError(
-                "Current KPIs are required before KPI churn analysis."
+                "KPI dataset is required before KPI churn analysis."
+            )
+
+        if "current_kpis" not in context.kpi_dataset:
+            raise ValueError(
+                "Current KPIs are missing from KPI dataset."
             )
 
         if not context.kpi_interpretation:

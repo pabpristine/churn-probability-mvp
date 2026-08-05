@@ -1,8 +1,8 @@
 from src.domain.entities.workflow_context import (
     WorkflowContext
 )
-from src.nodes.recommendation_generation_service import (
-    RecommendationGenerationService
+from src.nodes.recommendation_generation_node import (
+    RecommendationGenerationNode
 )
 
 
@@ -86,7 +86,7 @@ def main():
     # Execute Service
     # -------------------------------------------------
 
-    service = RecommendationGenerationService()
+    service = RecommendationGenerationNode()
 
     context = service.execute(
         context
