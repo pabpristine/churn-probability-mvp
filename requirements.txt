@@ -23,4 +23,6 @@ numpy
 
 sentence-transformers
 
+supabase-py
+
 pytest

@@ -26,12 +26,22 @@ class KPIRepository(BaseRepository):
         Insert a new KPI record.
         """
 
-        return self.provider.execute(
+        result = self.provider.execute(
             operation="insert",
             table=self.table_name,
             data=data
         )
 
+        # Supabase clients normally return .data and .error (or dict with 'error')
+        error = getattr(result, "error", None)
+        if isinstance(result, dict):
+            error = result.get("error")
+
+        if error:
+            # Yahi se turant pata chalega kya galat hai (missing column, type mismatch, etc.)
+            raise RuntimeError(f"KPIRepository.save failed: {error}")
+
+        return result
     # -------------------------------------------------
     # Update
     # -------------------------------------------------

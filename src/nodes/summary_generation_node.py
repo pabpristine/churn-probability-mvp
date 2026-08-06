@@ -1,4 +1,5 @@
 import json
+from typing import Any
 
 from src.base.base_service import BaseService
 from src.domain.entities.workflow_context import WorkflowContext
@@ -6,11 +7,11 @@ from src.domain.entities.workflow_context import WorkflowContext
 from src.providers.llm.groq_provider import GroqProvider
 
 from src.prompts.summary_system_prompt import (
-    SUMMARY_SYSTEM_PROMPT
+    SUMMARY_SYSTEM_PROMPT,
 )
 
 from src.prompts.summary_user_prompt import (
-    SUMMARY_USER_PROMPT
+    SUMMARY_USER_PROMPT,
 )
 
 from src.core.logging import setup_logger
@@ -24,14 +25,13 @@ class SummaryGenerationNode(BaseService):
     Generates an updated client summary by
     iteratively processing all summary batches.
 
-    This service DOES NOT update the database.
+    This service does not update the database.
     """
 
     def __init__(self):
-
         super().__init__(
             service_name="Summary Service",
-            service_type="SUMMARY"
+            service_type="SUMMARY",
         )
 
         self.groq_provider = GroqProvider()
@@ -42,17 +42,14 @@ class SummaryGenerationNode(BaseService):
 
     def validate(
         self,
-        context: WorkflowContext
+        context: WorkflowContext,
     ):
-
         if not context.client_id:
-
             raise ValueError(
                 "Client ID is required."
             )
 
         if not context.summary_batches:
-
             raise ValueError(
                 "Summary batches are missing."
             )
@@ -60,31 +57,50 @@ class SummaryGenerationNode(BaseService):
         return True
 
     # -------------------------------------------------
+    # Helpers
+    # -------------------------------------------------
+
+    @staticmethod
+    def _truncate_text(
+        value: Any,
+        max_chars: int,
+    ) -> str:
+        if value is None:
+            return ""
+
+        text = str(value).strip()
+
+        if len(text) <= max_chars:
+            return text
+
+        return (
+            text[:max_chars].rstrip()
+            + "\n[content truncated]"
+        )
+
+    # -------------------------------------------------
     # Prompt Builder
     # -------------------------------------------------
 
     def build_prompt(
-
         self,
-
-        context,
-
-        previous_summary,
-
-        batch_text
-
-    ):
-
+        context: WorkflowContext,
+        previous_summary: str,
+        batch_text: str,
+    ) -> str:
         return SUMMARY_USER_PROMPT.format(
-
-            client_name=context.client_name,
-
-            client_id=context.client_id,
-
-            previous_summary=previous_summary,
-
-            new_updates=batch_text
-
+            client_name=context.client_name or "N/A",
+            client_id=str(
+                context.client_id or "N/A"
+            ),
+            previous_summary=self._truncate_text(
+                previous_summary,
+                max_chars=1500,
+            ),
+            new_updates=self._truncate_text(
+                batch_text,
+                max_chars=3000,
+            ),
         )
 
     # -------------------------------------------------
@@ -92,19 +108,35 @@ class SummaryGenerationNode(BaseService):
     # -------------------------------------------------
 
     def call_llm(
-
         self,
-
-        user_prompt
-
+        user_prompt: str,
     ):
+        json_system_prompt = (
+            f"{SUMMARY_SYSTEM_PROMPT}\n\n"
+            "Return exactly one valid JSON object. "
+            "Use exactly these keys: "
+            "client_name, client_id, summary, "
+            "satisfaction_score. "
+            "client_name must be a string. "
+            "client_id must be a string. "
+            "summary must be a string under 120 words. "
+            "satisfaction_score must be an integer "
+            "between 0 and 100. "
+            "Return JSON only. "
+            "Do not return Markdown. "
+            "Do not use code fences. "
+            "Do not include explanations."
+        )
 
         return self.groq_provider.execute(
-
-            system_prompt=SUMMARY_SYSTEM_PROMPT,
-
-            prompt=user_prompt
-
+            system_prompt=json_system_prompt,
+            prompt=user_prompt,
+            temperature=0.0,
+            max_tokens=800,
+            include_reasoning=False,
+            response_format={
+                "type": "json_object",
+            },
         )
 
     # -------------------------------------------------
@@ -112,53 +144,82 @@ class SummaryGenerationNode(BaseService):
     # -------------------------------------------------
 
     def parse_response(
-
         self,
-
-        response
-
-    ):
-
+        response,
+    ) -> dict:
         if not isinstance(response, dict):
-
-            raise Exception(
+            raise ValueError(
                 "Invalid provider response."
             )
 
-        if "content" not in response:
-
-            raise Exception(
-                "LLM content missing."
-            )
-
         llm_output = (
-
-            response["content"]
-
-            .replace("```json", "")
-
-            .replace("```", "")
-
-            .strip()
-
+            response.get("content")
+            or response.get("text")
+            or ""
         )
 
-        try:
+        if not isinstance(llm_output, str):
+            llm_output = str(llm_output)
 
+        llm_output = llm_output.strip()
+
+        logger.info(
+            "Raw LLM content length: %s",
+            len(llm_output),
+        )
+
+        if not llm_output:
+            logger.error(
+                "Groq returned empty content. "
+                "Response keys: %s",
+                list(response.keys()),
+            )
+
+            raise ValueError(
+                "Groq returned empty content."
+            )
+
+        if llm_output.startswith("```"):
+            lines = llm_output.splitlines()
+
+            if (
+                lines
+                and lines.strip().lower()[0]
+                in (
+                    "```",
+                    "```json",
+                )
+            ):
+                lines = lines[1:]
+
+            if (
+                lines
+                and lines[-1].strip() == "```"
+            ):
+                lines = lines[:-1]
+
+            llm_output = "\n".join(
+                lines
+            ).strip()
+
+        try:
             result = json.loads(
                 llm_output
             )
 
-        except Exception as error:
+        except json.JSONDecodeError as error:
+            logger.error(
+                "Invalid JSON returned by Groq: %s",
+                llm_output[:1000],
+            )
 
-            raise Exception(
+            raise ValueError(
+                "Unable to parse JSON returned by Groq."
+            ) from error
 
-                f"\nUnable to parse JSON\n\n"
-
-                f"{llm_output}\n\n"
-
-                f"{error}"
-
+        if not isinstance(result, dict):
+            raise ValueError(
+                "Expected a JSON object."
             )
 
         return result
@@ -168,193 +229,178 @@ class SummaryGenerationNode(BaseService):
     # -------------------------------------------------
 
     def validate_response(
-
         self,
-
-        result
-
+        result: dict,
     ):
-
         required_keys = [
-
             "client_name",
-
             "client_id",
-
             "summary",
-
-            "satisfaction_score"
-
+            "satisfaction_score",
         ]
 
         for key in required_keys:
-
             if key not in result:
-
-                raise Exception(
-                    f"Missing key : {key}"
+                raise ValueError(
+                    f"Missing key: {key}"
                 )
+
+        if not isinstance(
+            result["client_name"],
+            str,
+        ):
+            raise ValueError(
+                "client_name must be a string."
+            )
+
+        if not isinstance(
+            result["client_id"],
+            str,
+        ):
+            raise ValueError(
+                "client_id must be a string."
+            )
+
+        if not isinstance(
+            result["summary"],
+            str,
+        ):
+            raise ValueError(
+                "summary must be a string."
+            )
+
+        satisfaction_score = result[
+            "satisfaction_score"
+        ]
+
+        if isinstance(
+            satisfaction_score,
+            bool,
+        ):
+            raise ValueError(
+                "satisfaction_score must be an integer."
+            )
+
+        if not isinstance(
+            satisfaction_score,
+            int,
+        ):
+            raise ValueError(
+                "satisfaction_score must be an integer."
+            )
+
+        if not 0 <= satisfaction_score <= 100:
+            raise ValueError(
+                "satisfaction_score must be between "
+                "0 and 100."
+            )
 
     # -------------------------------------------------
     # Business Logic
     # -------------------------------------------------
 
     def process(
-
         self,
-
-        context: WorkflowContext
-
+        context: WorkflowContext,
     ) -> WorkflowContext:
-
         current_summary = (
-
             context.previous_summary
-
             if context.previous_summary
-
             else "No previous summary available."
-
         )
 
         current_score = (
-
             context.previous_satisfaction_score
-
-            if context.previous_satisfaction_score
-
+            if (
+                context.previous_satisfaction_score
+                is not None
+            )
             else 50
-
         )
 
         total_prompt_tokens = 0
-
         total_completion_tokens = 0
-
         total_tokens = 0
 
         logger.info(
-
-            f"Processing "
-
-            f"{len(context.summary_batches)} "
-
-            f"summary batches."
-
+            "Processing %s summary batches.",
+            len(context.summary_batches),
         )
 
         for batch in context.summary_batches:
-
             logger.info(
-
-                f"Batch "
-
-                f"{batch['batch_index']} "
-
-                f"of "
-
-                f"{batch['batch_count']}"
-
+                "Batch %s of %s",
+                batch["batch_index"],
+                batch["batch_count"],
             )
-            
 
             user_prompt = self.build_prompt(
-
-                context,
-
-                current_summary,
-
-                batch["text"]
-
+                context=context,
+                previous_summary=current_summary,
+                batch_text=batch.get("text", ""),
             )
 
             response = self.call_llm(
-
                 user_prompt
-
             )
 
+            if not isinstance(response, dict):
+                raise ValueError(
+                    "Invalid normalized Groq response."
+                )
+
             usage = response.get(
-
                 "usage",
-
-                {}
-
+                {},
             )
 
             total_prompt_tokens += usage.get(
-
                 "prompt_tokens",
-
-                0
-
+                0,
             )
 
             total_completion_tokens += usage.get(
-
                 "completion_tokens",
-
-                0
-
+                0,
             )
 
             total_tokens += usage.get(
-
                 "total_tokens",
-
-                0
-
+                0,
             )
 
             result = self.parse_response(
-
                 response
-
             )
 
             self.validate_response(
-
                 result
-
             )
 
-            current_summary = (
+            current_summary = result[
+                "summary"
+            ]
 
-                result["summary"]
-
-            )
-
-            current_score = (
-
-                result["satisfaction_score"]
-
-            )
+            current_score = result[
+                "satisfaction_score"
+            ]
 
             context.llm_output = result
 
         context.updated_summary = (
-
             current_summary
-
         )
 
         context.updated_satisfaction_score = (
-
             current_score
-
         )
 
         context.llm_usage = {
-
-            "prompt_tokens":
-                total_prompt_tokens,
-
-            "completion_tokens":
-                total_completion_tokens,
-
-            "total_tokens":
-                total_tokens
-
+            "prompt_tokens": total_prompt_tokens,
+            "completion_tokens": (
+                total_completion_tokens
+            ),
+            "total_tokens": total_tokens,
         }
 
         return context

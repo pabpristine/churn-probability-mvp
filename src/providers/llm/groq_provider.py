@@ -1,3 +1,5 @@
+from typing import Optional
+
 from groq import Groq
 
 from src.base.base_provider import BaseProvider
@@ -6,17 +8,13 @@ from src.core.settings import settings
 
 class GroqProvider(BaseProvider):
     """
-    Provider responsible for interacting with the Groq LLM.
-
-    This provider contains no business logic and is used
-    only for communicating with the Groq API.
+    Provider responsible for interacting with Groq.
     """
 
     def __init__(self):
-
         super().__init__(
             provider_name="Groq Provider",
-            base_url="https://api.groq.com/openai/v1"
+            base_url="https://api.groq.com/openai/v1",
         )
 
         self.client = None
@@ -26,10 +24,6 @@ class GroqProvider(BaseProvider):
     # -------------------------------------------------
 
     def connect(self):
-        """
-        Establish a connection to the Groq API.
-        """
-
         super().connect()
 
         self.client = Groq(
@@ -43,16 +37,20 @@ class GroqProvider(BaseProvider):
     def send_request(
         self,
         prompt: str,
-        system_prompt: str = "You are a helpful AI assistant.",
+        system_prompt: str = (
+            "You are a helpful AI assistant."
+        ),
         temperature: float = 0.2,
-        max_tokens: int = 1024,
-        response_format: dict = None
+        max_tokens: int = 2048,
+        response_format: Optional[dict] = None,
+        include_reasoning: Optional[bool] = None,
+        reasoning_format: Optional[str] = None,
     ):
         """
         Send a chat completion request to Groq.
 
-        response_format example:
-        {"type": "json_object"}
+        Reasoning parameters are sent only for
+        supported GPT-OSS models.
         """
 
         if self.client is None:
@@ -60,25 +58,60 @@ class GroqProvider(BaseProvider):
                 "Groq client is not initialized."
             )
 
+        model = settings.groq_model
+
         request_payload = {
-            "model": settings.groq_model,
+            "model": model,
             "messages": [
                 {
                     "role": "system",
-                    "content": system_prompt
+                    "content": system_prompt,
                 },
                 {
                     "role": "user",
-                    "content": prompt
-                }
+                    "content": prompt,
+                },
             ],
             "temperature": temperature,
-            "max_tokens": max_tokens
+            "max_tokens": max_tokens,
         }
 
-        # Add response_format only when explicitly requested.
-        if response_format:
-            request_payload["response_format"] = response_format
+        if response_format is not None:
+            request_payload["response_format"] = (
+                response_format
+            )
+
+        is_reasoning_model = model in {
+            "openai/gpt-oss-20b",
+            "openai/gpt-oss-120b",
+        }
+
+        if is_reasoning_model:
+            if reasoning_format is not None:
+                request_payload["reasoning_format"] = (
+                    reasoning_format
+                )
+
+            elif include_reasoning is not None:
+                request_payload["include_reasoning"] = (
+                    include_reasoning
+                )
+
+        print(
+            "ACTUAL MODEL SENT TO GROQ:",
+            model,
+        )
+
+        print(
+            "GROQ REQUEST OPTIONS:",
+            {
+                key: value
+                for key, value in request_payload.items()
+                if key not in (
+                    "messages",
+                )
+            },
+        )
 
         return self.client.chat.completions.create(
             **request_payload
@@ -90,21 +123,45 @@ class GroqProvider(BaseProvider):
 
     def parse_response(
         self,
-        response
+        response,
     ):
-        """
-        Standardize the Groq response.
-        """
+        if not response:
+            raise ValueError(
+                "Groq returned an empty response."
+            )
+
+        if not response.choices:
+            raise ValueError(
+                "Groq response contains no choices."
+            )
+
+        choice = response.choices[0]
+        message = choice.message
+        usage = response.usage
 
         return {
-            "content": response.choices[0].message.content,
+            "content": message.content or "",
             "model": response.model,
             "usage": {
-                "prompt_tokens": response.usage.prompt_tokens,
-                "completion_tokens": response.usage.completion_tokens,
-                "total_tokens": response.usage.total_tokens
+                "prompt_tokens": (
+                    usage.prompt_tokens
+                    if usage
+                    else 0
+                ),
+                "completion_tokens": (
+                    usage.completion_tokens
+                    if usage
+                    else 0
+                ),
+                "total_tokens": (
+                    usage.total_tokens
+                    if usage
+                    else 0
+                ),
             },
-            "finish_reason": response.choices[0].finish_reason
+            "finish_reason": (
+                choice.finish_reason
+            ),
         }
 
     # -------------------------------------------------
@@ -112,12 +169,7 @@ class GroqProvider(BaseProvider):
     # -------------------------------------------------
 
     def disconnect(self):
-        """
-        Release the Groq client.
-        """
-
         super().disconnect()
-
         self.client = None
 
     # -------------------------------------------------
@@ -127,19 +179,21 @@ class GroqProvider(BaseProvider):
     def generate_response(
         self,
         prompt: str,
-        system_prompt: str = "You are a helpful AI assistant.",
+        system_prompt: str = (
+            "You are a helpful AI assistant."
+        ),
         temperature: float = 0.2,
-        max_tokens: int = 1024,
-        response_format: dict = None
+        max_tokens: int = 2048,
+        response_format: Optional[dict] = None,
+        include_reasoning: Optional[bool] = None,
+        reasoning_format: Optional[str] = None,
     ):
-        """
-        Generate a response using the Groq LLM.
-        """
-
         return self.execute(
             prompt=prompt,
             system_prompt=system_prompt,
             temperature=temperature,
             max_tokens=max_tokens,
-            response_format=response_format
+            response_format=response_format,
+            include_reasoning=include_reasoning,
+            reasoning_format=reasoning_format,
         )

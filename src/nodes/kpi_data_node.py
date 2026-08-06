@@ -5,10 +5,6 @@ from src.domain.entities.workflow_context import WorkflowContext
 from src.repositories.kpi_repository import KPIRepository
 
 
-# Service responsible for fetching KPI data,
-# creating a new KPI record when missing,
-# normalizing records, and storing the final KPI dataset
-# in the workflow context.
 class KPIDataNode(BaseService):
     """
     Fetch KPI data for a client, normalize numeric values,
@@ -19,48 +15,46 @@ class KPIDataNode(BaseService):
     """
 
     def __init__(self):
-        # Initialize the base service with service name and type metadata.
         super().__init__(
             service_name="KPI Data Service",
             service_type="KPI_DATA"
         )
-
-        # Repository used for all client_kpi table operations.
         self.kpi_repository = KPIRepository()
 
     def validate(self, context: WorkflowContext):
-        # Ensure that client_id is present before processing.
         if not context.client_id:
             raise ValueError("client_id is required in workflow context")
         return True
 
     def process(self, context: WorkflowContext) -> WorkflowContext:
-        # First try to fetch KPI records for the given client_id.
-        raw_records = self.kpi_repository.find_by_id(context.client_id) or []
+        print("KPIDataNode: client_id =", context.client_id, "client_name =", context.client_name)
 
-        # If the client is not present in the table,
-        # build a new KPI row using workflow context data
-        # and store it in the database.
+        # Try to fetch existing KPI records
+        raw_records = self.kpi_repository.find_by_id(context.client_id) or []
+        print("KPIDataNode: initial raw_records len =", len(raw_records))
+
+        # If none, build from context and insert once
         if not raw_records:
             new_record = self._build_kpi_record_from_context(context)
+            print("KPIDataNode: new_record to insert =", new_record)
 
             if new_record:
-                self.kpi_repository.save(new_record)
+                result = self.kpi_repository.save(new_record)
+                print("KPIDataNode: save result =", result)
 
-                # Fetch again after insert so the rest of the flow
-                # always works with table data.
                 raw_records = self.kpi_repository.find_by_id(context.client_id) or []
+                print("KPIDataNode: raw_records after insert len =", len(raw_records))
 
-        # Normalize each KPI record so numeric fields become usable Python numbers.
+        # Normalize each KPI record
         normalized_records = [
             self._normalize_record(record)
             for record in raw_records
         ]
 
-        # Select the most recent KPI record as the current KPI snapshot.
+        # Select the latest KPI snapshot
         latest_record = self._select_latest_record(normalized_records)
 
-        # Build the final KPI dataset structure to store in the context.
+        # Build dataset
         kpi_dataset = {
             "client_id": context.client_id,
             "client_name": context.client_name,
@@ -71,10 +65,7 @@ class KPIDataNode(BaseService):
             "windows_calculated": self._infer_windows(latest_record or {})
         }
 
-        # Store the latest KPI snapshot directly for easy downstream access.
         context.current_kpis = latest_record or {}
-
-        # Store the full KPI dataset in the workflow context.
         context.kpi_dataset = kpi_dataset
 
         return context
@@ -83,44 +74,60 @@ class KPIDataNode(BaseService):
         self,
         context: WorkflowContext
     ) -> Dict[str, Any]:
-        # Use Google Sheet data as the primary source
-        # for creating a missing KPI record.
         sheet = context.google_sheet_data or {}
-
-        # Use latest client update as a secondary fallback source.
         latest_update = context.latest_client_update or {}
 
-        # Helper function to pick the first non-empty value
-        # from google_sheet_data or latest_client_update.
+        print("KPIDataNode: google_sheet_data keys =", list(sheet.keys()))
+        print("KPIDataNode: latest_client_update keys =", list(latest_update.keys()))
+
         def pick(*keys, default=None):
+            # direct lookup
             for key in keys:
                 if key in sheet and sheet.get(key) not in (None, ""):
                     return sheet.get(key)
                 if key in latest_update and latest_update.get(key) not in (None, ""):
                     return latest_update.get(key)
+
+            # case-insensitive fallback
+            lower_sheet = {k.lower(): v for k, v in sheet.items()}
+            lower_update = {k.lower(): v for k, v in latest_update.items()}
+
+            for key in keys:
+                lk = key.lower()
+                if lk in lower_sheet and lower_sheet[lk] not in (None, ""):
+                    return lower_sheet[lk]
+                if lk in lower_update and lower_update[lk] not in (None, ""):
+                    return lower_update[lk]
+
             return default
 
-        # Build the row according to the client_kpi table schema.
         return {
-            "client_id": context.client_id,
-            "client_name": context.client_name or pick("client_name"),
-            "program_type": pick("program_type"),
-            "program_stage": pick("program_stage"),
-            "program_duration": pick("program_duration"),
-            "campaign_status": pick("campaign_status"),
-            "call_center_status": pick("call_center_status"),
-            "ad_spend_7d": self._to_float(pick("ad_spend_7d")),
-            "ad_spend_mtd": self._to_float(pick("ad_spend_mtd")),
-            "ad_spend_30d": self._to_float(pick("ad_spend_30d")),
-            "lead_cost_7d": self._to_float(pick("lead_cost_7d")),
-            "lead_cost_mtd": self._to_float(pick("lead_cost_mtd")),
-            "lead_cost_30d": self._to_float(pick("lead_cost_30d")),
-            "appt_cost_7d": self._to_float(pick("appt_cost_7d")),
-            "appt_cost_mtd": self._to_float(pick("appt_cost_mtd")),
-            "appt_cost_30d": self._to_float(pick("appt_cost_30d")),
+            "client_id": context.client_id or pick("client_id", "clientId"),
+            "client_name": context.client_name or pick("client_name", "clientName"),
+
+            "program_type": pick("program_type", "programType"),
+            "program_stage": pick("program_stage", "programStage"),
+            "program_duration": pick("program_duration", "programDuration"),
+            "campaign_status": pick("campaign_status", "campaignStatus"),
+            "call_center_status": pick("call_center_status", "callCenterStatus"),
+
+            "ad_spend_7d": self._to_float(pick("ad_spend_7d", "adSpend7D")),
+            "ad_spend_mtd": self._to_float(pick("ad_spend_mtd", "adSpendMTD")),
+            "ad_spend_30d": self._to_float(pick("ad_spend_30d", "adSpend30D")),
+
+            "lead_cost_7d": self._to_float(pick("lead_cost_7d", "leadCost7D")),
+            "lead_cost_mtd": self._to_float(pick("lead_cost_mtd", "leadCostMTD")),
+            "lead_cost_30d": self._to_float(pick("lead_cost_30d", "leadCost30D")),
+
+            "appt_cost_7d": self._to_float(pick("appt_cost_7d", "apptCost7D")),
+            "appt_cost_mtd": self._to_float(pick("appt_cost_mtd", "apptCostMTD")),
+            "appt_cost_30d": self._to_float(pick("appt_cost_30d", "apptCost30D")),
+
+            # appointments_* are not present in sheet yet; they will be None for now
             "appointments_7d": self._to_float(pick("appointments_7d")),
             "appointments_mtd": self._to_float(pick("appointments_mtd")),
             "appointments_30d": self._to_float(pick("appointments_30d")),
+
             "isembeddings_created": False,
             "retry_count": 0
         }
@@ -129,16 +136,10 @@ class KPIDataNode(BaseService):
         self,
         records: List[Dict[str, Any]]
     ) -> Optional[Dict[str, Any]]:
-        # Return None if there are no KPI records.
         if not records:
             return None
-
-        # If only one record exists, return it directly.
         if len(records) == 1:
             return records[0]
-
-        # Otherwise, sort by updated_at first, then created_at,
-        # and return the newest record.
         return sorted(
             records,
             key=lambda x: x.get("updated_at") or x.get("created_at") or "",
@@ -149,7 +150,6 @@ class KPIDataNode(BaseService):
         self,
         record: Dict[str, Any]
     ) -> Dict[str, Any]:
-        # These fields are expected to contain numeric KPI values.
         numeric_fields = {
             "ad_spend_7d",
             "ad_spend_mtd",
@@ -166,11 +166,8 @@ class KPIDataNode(BaseService):
             "retry_count",
         }
 
-        # Store normalized values here.
         normalized = {}
 
-        # Convert known numeric fields to float
-        # while keeping all other values unchanged.
         for key, value in record.items():
             if key in numeric_fields:
                 normalized[key] = self._to_float(value)
@@ -180,12 +177,8 @@ class KPIDataNode(BaseService):
         return normalized
 
     def _to_float(self, value: Any):
-        # Treat None and empty string as missing values.
         if value is None or value == "":
             return None
-
-        # Try converting the value to float.
-        # If conversion fails, return the original value.
         try:
             return float(value)
         except (TypeError, ValueError):
@@ -195,18 +188,14 @@ class KPIDataNode(BaseService):
         self,
         record: Dict[str, Any]
     ) -> List[str]:
-        # Collect which KPI time windows are present in the record.
         windows = []
 
-        # Add 7d if at least one 7-day KPI value exists.
         if any(key.endswith("_7d") and record.get(key) is not None for key in record):
             windows.append("7d")
 
-        # Add mtd if at least one month-to-date KPI value exists.
         if any(key.endswith("_mtd") and record.get(key) is not None for key in record):
             windows.append("mtd")
 
-        # Add 30d if at least one 30-day KPI value exists.
         if any(key.endswith("_30d") and record.get(key) is not None for key in record):
             windows.append("30d")
 
