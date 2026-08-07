@@ -19,8 +19,8 @@ python-dotenv
 pydantic
 pydantic-settings
 
-numpy
+sentence-transformers  
 
-sentence-transformers
+numpy
 
 pytest
