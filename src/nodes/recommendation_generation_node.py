@@ -1,199 +1,228 @@
 import json
+import logging
+import re
 
 from src.base.base_service import BaseService
 from src.domain.entities.workflow_context import WorkflowContext
 
 from src.prompts.recommendation_generation_prompt import (
     RECOMMENDATION_SYSTEM_PROMPT,
-    RECOMMENDATION_USER_PROMPT
+    RECOMMENDATION_USER_PROMPT,
 )
 
-from src.providers.llm.groq_provider import (
-    GroqProvider
-)
+from src.providers.llm.groq_provider import GroqProvider
+
+
+logger = logging.getLogger(__name__)
 
 
 class RecommendationGenerationNode(BaseService):
 
     def __init__(self):
-
         super().__init__(
-
             service_name="Recommendation Generation Service",
-
-            service_type="LLM"
-
+            service_type="LLM",
         )
 
         self.groq_provider = GroqProvider()
 
-    # -------------------------------------------------
-    # Validation
-    # -------------------------------------------------
-
     def validate(
         self,
-        context: WorkflowContext
+        context: WorkflowContext,
     ):
-
         if context.final_probability is None:
-
             raise ValueError(
                 "Final churn probability is required."
             )
 
         if context.risk_level is None:
-
             raise ValueError(
                 "Risk level is required."
             )
 
         if not context.final_analysis:
-
             raise ValueError(
                 "Final analysis is required."
             )
 
         return True
 
-    # -------------------------------------------------
-    # Prompt Builder
-    # -------------------------------------------------
-
     def build_prompt(
         self,
-        context: WorkflowContext
+        context: WorkflowContext,
     ):
-
-        current_kpis = context.kpi_dataset.get("current_kpis", {})
+        current_kpis = (
+            context.kpi_dataset.get(
+                "current_kpis",
+                {},
+            )
+            if context.kpi_dataset
+            else {}
+        )
 
         kpis = "\n".join(
             f"{key}: {value}"
             for key, value in current_kpis.items()
-        )
+        ) or "No KPI data available."
 
         red_flags = "\n".join(
-
             f"- {item}"
-
-            for item in context.final_red_flags
-
-        )
+            for item in (
+                context.final_red_flags
+                or []
+            )
+        ) or "No red flags identified."
 
         bottlenecks = "\n".join(
-
             f"- {item}"
-
-            for item in context.final_bottlenecks
-
-        )
+            for item in (
+                context.final_bottlenecks
+                or []
+            )
+        ) or "No bottlenecks identified."
 
         historical_insights = "\n".join(
-
             f"- {item}"
-
-            for item in context.final_historical_insights
-
-        )
+            for item in (
+                context.final_historical_insights
+                or []
+            )
+        ) or "No historical insights available."
 
         return RECOMMENDATION_USER_PROMPT.format(
-
-            client_name=context.client_name,
-
-            program_stage=context.program_stage,
-
-            campaign_status=context.campaign_status,
-
+            client_name=context.client_name or "N/A",
+            program_stage=context.program_stage or "N/A",
+            campaign_status=context.campaign_status or "N/A",
             kpis=kpis,
-
             final_probability=context.final_probability,
-
             risk_level=context.risk_level,
-
             analysis=context.final_analysis,
-
             red_flags=red_flags,
-
             bottlenecks=bottlenecks,
-
-            historical_insights=historical_insights
-
+            historical_insights=historical_insights,
         )
-
-    # -------------------------------------------------
-    # LLM
-    # -------------------------------------------------
 
     def call_llm(
         self,
-        prompt
+        prompt: str,
     ):
-
         return self.groq_provider.generate_response(
-
             prompt=prompt,
-
             system_prompt=RECOMMENDATION_SYSTEM_PROMPT,
-
             temperature=0.2,
-
-            max_tokens=800
-
+            max_tokens=800,
         )
 
-    # -------------------------------------------------
-    # Business Logic
-    # -------------------------------------------------
+    @staticmethod
+    def parse_json_response(
+        content: str,
+    ) -> dict:
+        """
+        Parse JSON returned by the LLM.
+
+        Handles:
+        - Normal JSON.
+        - JSON inside Markdown code fences.
+        - Explanatory text before or after a JSON object.
+        """
+
+        content = (
+            str(content or "")
+            .replace("\ufeff", "")
+            .strip()
+        )
+
+        if not content:
+            raise ValueError(
+                "Recommendation LLM returned empty content."
+            )
+
+        logger.info(
+            "Recommendation raw LLM content: %r",
+            content,
+        )
+
+        fenced_match = re.search(
+            r"```(?:json)?\s*(.*?)\s*```",
+            content,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+        if fenced_match:
+            content = fenced_match.group(1).strip()
+
+        try:
+            result = json.loads(content)
+
+        except json.JSONDecodeError:
+            object_start = content.find("{")
+            object_end = content.rfind("}")
+
+            if (
+                object_start == -1
+                or object_end == -1
+                or object_end <= object_start
+            ):
+                raise ValueError(
+                    "Recommendation LLM returned invalid JSON. "
+                    f"Raw content: {content[:1000]!r}"
+                )
+
+            json_content = content[
+                object_start:object_end + 1
+            ]
+
+            try:
+                result = json.loads(json_content)
+
+            except json.JSONDecodeError as error:
+                raise ValueError(
+                    "Recommendation LLM returned invalid JSON. "
+                    f"Raw content: {content[:1000]!r}"
+                ) from error
+
+        if not isinstance(result, dict):
+            raise ValueError(
+                "Recommendation LLM response must be a JSON object."
+            )
+
+        return result
 
     def process(
         self,
-        context: WorkflowContext
+        context: WorkflowContext,
     ) -> WorkflowContext:
+        prompt = self.build_prompt(context)
 
-        # Build prompt
-        prompt = self.build_prompt(
-            context
+        response = self.call_llm(prompt)
+
+        context.llm_usage = (
+            response.get("usage", {})
+            if isinstance(response, dict)
+            else {}
         )
 
-        # Call LLM
-        response = self.call_llm(
-            prompt
-        )
-
-        # Store token usage
-        context.llm_usage = response["usage"]
-
-        # Get generated content
-        content = response["content"].strip()
-
-        # Parse JSON response
-        try:
-
-            result = json.loads(
-                content
-            )
-
-        except json.JSONDecodeError:
-
+        if not isinstance(response, dict):
             raise ValueError(
-                "LLM returned invalid JSON."
+                "Unexpected response format from Groq provider."
             )
 
-        # Validate recommendations
+        content = response.get(
+            "content",
+            "",
+        )
+
+        result = self.parse_json_response(content)
+
         recommendations = result.get(
-            "recommendations"
+            "recommendations",
         )
 
-        if not isinstance(
-            recommendations,
-            list
-        ):
-
+        if not isinstance(recommendations, list):
             raise ValueError(
-                "Recommendations field missing."
+                "Recommendations field missing or invalid."
             )
 
-        # Update workflow context
         context.recommendations = recommendations
 
         return context

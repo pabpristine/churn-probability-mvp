@@ -1,7 +1,7 @@
-from typing import List
+from typing import List, Any, Dict
 
 import numpy as np
-from sentence_transformers import SentenceTransformer
+from sentence_transformers import SentenceTransformer  # NEW
 
 from src.base.base_provider import BaseProvider
 from src.core.settings import settings
@@ -10,20 +10,28 @@ from src.core.settings import settings
 class HuggingFaceProvider(BaseProvider):
     """
     Provider responsible for generating embeddings
-    using HuggingFace SentenceTransformer.
+    using a local sentence-transformers model.
 
     This provider contains NO business logic.
     """
 
     EXPECTED_DIMENSION = 768
-    _model = None
 
     def __init__(self):
         super().__init__(
-            provider_name="HuggingFace Provider",
-            base_url="Local SentenceTransformer"
+            provider_name="HuggingFace Local Provider",
+            base_url="LOCAL_MODEL",
         )
-        self.client = None
+        self.client = None  # not used; kept for interface
+
+        # Load local sentence-transformers model
+        # Use settings.embedding_model if you want to override via .env,
+        # otherwise default to all-mpnet-base-v2.
+        model_name = getattr(settings, "embedding_model", None) or "sentence-transformers/all-mpnet-base-v2"
+        self.model = SentenceTransformer(model_name)
+
+        # Embedding dimension expectation
+        self.expected_dimension = getattr(settings, "embedding_dimension", self.EXPECTED_DIMENSION)
 
     # -------------------------------------------------
     # Connection
@@ -31,16 +39,17 @@ class HuggingFaceProvider(BaseProvider):
 
     def connect(self):
         """
-        Load the SentenceTransformer model.
+        For local model, nothing special to connect.
+        Kept for interface compatibility.
         """
         super().connect()
-
-        if HuggingFaceProvider._model is None:
-            HuggingFaceProvider._model = SentenceTransformer(
-                settings.embedding_model
+        # Optionally verify model outputs correct dimension
+        test_vec = self.model.encode("test", convert_to_numpy=True)
+        if test_vec.shape[-1] != self.expected_dimension:
+            raise ValueError(
+                f"Embedding dimension mismatch: expected "
+                f"{self.expected_dimension}, got {test_vec.shape[-1]}"
             )
-
-        self.client = HuggingFaceProvider._model
 
     # -------------------------------------------------
     # Internal Validation
@@ -56,10 +65,10 @@ class HuggingFaceProvider(BaseProvider):
         if embedding is None:
             raise ValueError("Embedding cannot be None.")
 
-        if len(embedding) != self.EXPECTED_DIMENSION:
+        if len(embedding) != self.expected_dimension:
             raise ValueError(
                 f"Embedding dimension mismatch: expected "
-                f"{self.EXPECTED_DIMENSION}, got {len(embedding)}"
+                f"{self.expected_dimension}, got {len(embedding)}"
             )
 
     def _to_float_list(self, embedding) -> List[float]:
@@ -75,31 +84,31 @@ class HuggingFaceProvider(BaseProvider):
         return embedding
 
     # -------------------------------------------------
-    # Request Execution
+    # Local Embedding Execution
     # -------------------------------------------------
+
+    def _generate_local_embedding(self, text: str) -> List[float]:
+        """
+        Generate embedding using local sentence-transformers model.
+        """
+        # model.encode returns numpy array if convert_to_numpy=True
+        vec = self.model.encode(text, convert_to_numpy=True)
+        # Ensure 1D vector
+        if vec.ndim > 1:
+            vec = vec.squeeze()
+        return self._to_float_list(vec)
 
     def send_request(self, text: str):
         """
-        Generate embedding for input text.
+        Generate embedding for input text via local model.
         """
-        if self.client is None:
-            raise ValueError("HuggingFace model is not initialized.")
-
+        self.connect()
         self._validate_text(text)
 
-        embedding = self.client.encode(
-            text,
-            normalize_embeddings=True,
-            convert_to_numpy=True
-        )
+        embedding = self._generate_local_embedding(text)
 
-        if embedding.ndim != 1:
-            raise ValueError(
-                f"Expected 1D embedding array, got shape {embedding.shape}"
-            )
-
-        self._validate_embedding_dimension(embedding)
-        return embedding.astype(np.float32)
+        # Keep numpy array internally for compatibility with existing code
+        return np.asarray(embedding, dtype=np.float32)
 
     # -------------------------------------------------
     # Weighted Embedding
@@ -110,7 +119,7 @@ class HuggingFaceProvider(BaseProvider):
         summary_embedding: List[float],
         kpi_embedding: List[float],
         summary_weight: float = 0.7,
-        kpi_weight: float = 0.3
+        kpi_weight: float = 0.3,
     ) -> List[float]:
         """
         Generate a weighted embedding by combining
@@ -118,37 +127,31 @@ class HuggingFaceProvider(BaseProvider):
 
         The resulting vector is normalized to unit length.
         """
-        self.connect()
+        summary_embedding_arr = np.asarray(summary_embedding, dtype=np.float32)
+        kpi_embedding_arr = np.asarray(kpi_embedding, dtype=np.float32)
 
-        try:
-            summary_embedding = np.asarray(summary_embedding, dtype=np.float32)
-            kpi_embedding = np.asarray(kpi_embedding, dtype=np.float32)
+        self._validate_embedding_dimension(summary_embedding_arr)
+        self._validate_embedding_dimension(kpi_embedding_arr)
 
-            self._validate_embedding_dimension(summary_embedding)
-            self._validate_embedding_dimension(kpi_embedding)
-
-            if summary_embedding.shape != kpi_embedding.shape:
-                raise ValueError(
-                    "Summary and KPI embeddings must have the same dimension."
-                )
-
-            weighted_embedding = (
-                summary_weight * summary_embedding +
-                kpi_weight * kpi_embedding
+        if summary_embedding_arr.shape != kpi_embedding_arr.shape:
+            raise ValueError(
+                "Summary and KPI embeddings must have the same dimension."
             )
 
-            norm = np.linalg.norm(weighted_embedding)
+        weighted_embedding = (
+            summary_weight * summary_embedding_arr +
+            kpi_weight * kpi_embedding_arr
+        )
 
-            if norm > 0:
-                weighted_embedding = weighted_embedding / norm
+        norm = np.linalg.norm(weighted_embedding)
 
-            weighted_embedding = weighted_embedding.astype(np.float32)
-            self._validate_embedding_dimension(weighted_embedding)
+        if norm > 0:
+            weighted_embedding = weighted_embedding / norm
 
-            return weighted_embedding.tolist()
+        weighted_embedding = weighted_embedding.astype(np.float32)
+        self._validate_embedding_dimension(weighted_embedding)
 
-        finally:
-            self.disconnect()
+        return weighted_embedding.tolist()
 
     # -------------------------------------------------
     # Response Parsing
@@ -163,7 +166,7 @@ class HuggingFaceProvider(BaseProvider):
         return {
             "embedding": embedding,
             "dimension": len(embedding),
-            "model": settings.embedding_model
+            "model": settings.embedding_model,
         }
 
     # -------------------------------------------------
@@ -172,7 +175,8 @@ class HuggingFaceProvider(BaseProvider):
 
     def disconnect(self):
         """
-        Release the model reference.
+        For local provider, there's nothing heavy to release.
+        Kept for interface compatibility.
         """
         super().disconnect()
         self.client = None

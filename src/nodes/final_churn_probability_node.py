@@ -31,7 +31,7 @@ class FinalChurnProbabilityNode(BaseService):
     --------
     Summary < 70 and KPI < 70
 
-        Fetch campaign weights
+        Fetch campaign-stage weights
 
         Final Probability =
             Summary × Updates Weight +
@@ -39,7 +39,6 @@ class FinalChurnProbabilityNode(BaseService):
     """
 
     def __init__(self):
-
         super().__init__(
             service_name="Final Churn Probability Service",
             service_type="BUSINESS"
@@ -57,15 +56,12 @@ class FinalChurnProbabilityNode(BaseService):
         self,
         context: WorkflowContext
     ):
-
         if context.summary_probability is None:
-
             raise ValueError(
                 "Summary probability is required."
             )
 
         if context.kpi_probability is None:
-
             raise ValueError(
                 "KPI probability is required."
             )
@@ -81,9 +77,8 @@ class FinalChurnProbabilityNode(BaseService):
         context: WorkflowContext
     ) -> WorkflowContext:
 
-        summary = context.summary_probability
-
-        kpi = context.kpi_probability
+        summary = float(context.summary_probability)
+        kpi = float(context.kpi_probability)
 
         # ---------------------------------------------
         # Case 1
@@ -91,7 +86,6 @@ class FinalChurnProbabilityNode(BaseService):
         # ---------------------------------------------
 
         if summary >= 70 and kpi >= 70:
-
             context.final_probability = round(
                 (
                     summary + kpi
@@ -107,8 +101,10 @@ class FinalChurnProbabilityNode(BaseService):
         # ---------------------------------------------
 
         elif summary >= 70:
-
-            context.final_probability = summary
+            context.final_probability = round(
+                summary,
+                2
+            )
 
             context.risk_level = "High"
 
@@ -118,42 +114,52 @@ class FinalChurnProbabilityNode(BaseService):
         # ---------------------------------------------
 
         else:
+            current_kpis = context.current_kpis or {}
+
+            campaign_stage = (
+                current_kpis.get("program_stage")
+                or current_kpis.get("campaign_stage")
+            )
+
+            if not campaign_stage:
+                raise Exception(
+                    "Campaign stage is required to fetch "
+                    "campaign-stage weights."
+                )
 
             response = (
-                self.campaign_stage_repository.find_by_status(
-                    context.campaign_status
+                self.campaign_stage_repository
+                .find_by_campaign_stage(
+                    campaign_stage
                 )
             )
 
             if not response:
-
                 raise Exception(
-                    f"No campaign weights found "
-                    f"for {context.campaign_status}"
+                    f"No campaign weights found for "
+                    f"{campaign_stage}"
                 )
 
-            weights = response[0]
+            # The repository already returns one dictionary row.
+            weights = response
 
-            updates_weight = weights[
-                "updates_weight"
-            ]
+            update_weight = float(
+                weights["update_weight"]
+            )
 
-            kpi_weight = weights[
-                "kpi_weight"
-            ]
+            kpi_weight = float(
+                weights["kpi_weight"]
+            )
 
             context.final_probability = round(
-
                 (
-                    summary * updates_weight
+                    summary * update_weight
                 )
                 +
                 (
                     kpi * kpi_weight
                 ),
-
                 2
-
             )
 
             # -----------------------------------------
@@ -161,15 +167,12 @@ class FinalChurnProbabilityNode(BaseService):
             # -----------------------------------------
 
             if context.final_probability >= 70:
-
                 context.risk_level = "High"
 
             elif context.final_probability >= 40:
-
                 context.risk_level = "Medium"
 
             else:
-
                 context.risk_level = "Low"
 
         # -------------------------------------------------
@@ -179,31 +182,23 @@ class FinalChurnProbabilityNode(BaseService):
         analysis = []
 
         if context.summary_analysis:
-
             analysis.append(
-
                 f"Summary Analysis\n"
                 f"-----------------\n"
                 f"{context.summary_analysis}"
-
             )
 
         if context.kpi_analysis:
-
             analysis.append(
-
                 f"KPI Analysis\n"
                 f"-------------\n"
                 f"{context.kpi_analysis}"
-
             )
 
         context.final_analysis = (
-
             "\n\n"
             "========================================"
             "\n\n"
-
         ).join(analysis)
 
         # -------------------------------------------------
@@ -211,16 +206,11 @@ class FinalChurnProbabilityNode(BaseService):
         # -------------------------------------------------
 
         context.final_red_flags = list(
-
             dict.fromkeys(
-
-                context.summary_red_flags
+                (context.summary_red_flags or [])
                 +
-
-                context.kpi_red_flags
-
+                (context.kpi_red_flags or [])
             )
-
         )
 
         # -------------------------------------------------
@@ -228,16 +218,11 @@ class FinalChurnProbabilityNode(BaseService):
         # -------------------------------------------------
 
         context.final_bottlenecks = list(
-
             dict.fromkeys(
-
-                context.summary_bottlenecks
+                (context.summary_bottlenecks or [])
                 +
-
-                context.kpi_bottlenecks
-
+                (context.kpi_bottlenecks or [])
             )
-
         )
 
         # -------------------------------------------------
@@ -245,16 +230,11 @@ class FinalChurnProbabilityNode(BaseService):
         # -------------------------------------------------
 
         context.final_historical_insights = list(
-
             dict.fromkeys(
-
-                context.summary_historical_insights
+                (context.summary_historical_insights or [])
                 +
-
-                context.kpi_historical_insights
-
+                (context.kpi_historical_insights or [])
             )
-
         )
 
         return context

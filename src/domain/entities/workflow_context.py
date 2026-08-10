@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+import uuid
 
 
 @dataclass
@@ -227,3 +228,22 @@ class WorkflowContext:
     # -------------------------------------------------
 
     metadata: Dict[str, Any] = field(default_factory=dict)
+
+    # -------------------------------------------------
+    # Post-init hook
+    # -------------------------------------------------
+
+    def __post_init__(self):
+        """
+        Ensure metadata exists and always includes an execution_id.
+        This is used for error logging correlation.
+        """
+        if self.metadata is None:
+            self.metadata = {}
+
+        # Only set if not already provided
+        self.metadata.setdefault("execution_id", str(uuid.uuid4()))
+
+        # Optional defaults you can expand later:
+        # self.metadata.setdefault("environment", "production")
+        # self.metadata.setdefault("mode", "default")
