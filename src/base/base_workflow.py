@@ -7,170 +7,76 @@ from src.domain.entities.workflow_context import WorkflowContext
 from src.domain.enums.status_enum import WorkflowStatus
 
 
-class BaseWorkflow(BaseNode):
+from src.utils.workflow_error_logger import WorkflowErrorLogger
+
+
+class BaseWorkflow:
     """
     Base class for all workflows.
 
-    A workflow is responsible for orchestrating the
-    execution of multiple services while maintaining
-    a shared WorkflowContext throughout execution.
+    Handles orchestration of services (nodes) and logs
+    any errors to workflow_error_logs via WorkflowErrorLogger.
     """
 
-    def __init__(
-        self,
-        workflow_name: str
-    ):
-        super().__init__(
-            node_name=workflow_name,
-            node_type="WORKFLOW"
-        )
-
-        # Unique workflow identifier
-        self.workflow_id = self.node_id
-
+    def __init__(self, workflow_name: str):
         self.workflow_name = workflow_name
+        self.services = []
+        self.error_logger = WorkflowErrorLogger()
+        self.build_workflow()
 
-        # Current workflow execution status
-        self.workflow_status = (
-            WorkflowStatus.PENDING
-        )
-
-        # Shared context passed between services
-        self.context: WorkflowContext | None = None
-
-        # Ordered list of services
-        self.services: List[
-            BaseService
-        ] = []
-
-    # -------------------------------------------------
-    # Workflow Construction
-    # -------------------------------------------------
-
-    @abstractmethod
     def build_workflow(self):
         """
-        Register all services required
-        for the workflow.
-
-        Must be implemented by child workflows.
+        Implemented by subclasses to add services (nodes).
         """
-        pass
+        raise NotImplementedError
 
-    def add_service(
-        self,
-        service: BaseService
-    ):
+    def add_service(self, service):
+        self.services.append(service)
+
+    def execute(self, context):
         """
-        Register a service in the workflow.
+        Executes each service in sequence.
+        Any exception in a service is logged and re-raised.
         """
+        for service in self.services:
+            try:
+                context = service.execute(context)
+            except Exception as exc:
+                metadata = getattr(context, "metadata", {}) if context is not None else {}
 
-        if service not in self.services:
+                execution_id = metadata.get("execution_id")
+                client_id = metadata.get("client_id")
+                client_name = metadata.get("client_name")
+                run_id = metadata.get("run_id")
+                parent_run_id = metadata.get("parent_run_id")
+                root_run_id = metadata.get("root_run_id")
+                source_workflow_type = metadata.get("source_workflow_type")
+                environment = metadata.get("environment", "production")
 
-            self.services.append(
-                service
-            )
+                node_name = service.__class__.__name__
 
-    # -------------------------------------------------
-    # Workflow Lifecycle
-    # -------------------------------------------------
-
-    def start(
-        self,
-        context: WorkflowContext
-    ):
-        """
-        Initialize workflow execution.
-        """
-
-        self.initialize()
-
-        self.context = context
-
-        self.workflow_status = (
-            WorkflowStatus.RUNNING
-        )
-
-        self.logger.info(
-            f"{self.workflow_name} started."
-        )
-
-    def update_context(
-        self,
-        context: WorkflowContext
-    ):
-        """
-        Update the shared workflow context.
-        """
-
-        self.context = context
-
-    def execute(
-        self,
-        context: WorkflowContext
-    ) -> WorkflowContext:
-        """
-        Execute all registered services
-        sequentially.
-        """
-
-        try:
-
-            self.start(context)
-
-            # Prevent duplicate services
-            self.services.clear()
-
-            self.build_workflow()
-
-            for service in self.services:
-
-                context = service.execute(
-                    context
+                self.error_logger.log(
+                    workflow_name=self.workflow_name,
+                    workflow_id=metadata.get("workflow_id"),
+                    execution_id=execution_id,
+                    execution_url=metadata.get("execution_url"),
+                    retry_of=metadata.get("retry_of"),
+                    mode=metadata.get("mode"),
+                    node_name=node_name,
+                    exc=exc,
+                    severity="error",
+                    client_id=client_id,
+                    client_name=client_name,
+                    run_id=run_id,
+                    parent_run_id=parent_run_id,
+                    root_run_id=root_run_id,
+                    source_workflow_type=source_workflow_type,
+                    environment=environment,
+                    execution_payload={"metadata": metadata},
+                    workflow_payload={"workflow_name": self.workflow_name},
                 )
 
-                self.update_context(
-                    context
-                )
+                # Let the caller (AIWorkflowOrchestrator) also see the error
+                raise
 
-            self.stop()
-
-            return self.context
-
-        except Exception as error:
-
-            self.rollback()
-
-            self.handle_error(
-                error
-            )
-
-            raise error
-
-    def stop(self):
-        """
-        Mark workflow execution as completed.
-        """
-
-        self.workflow_status = (
-            WorkflowStatus.COMPLETED
-        )
-
-        self.complete()
-
-        self.logger.info(
-            f"{self.workflow_name} completed."
-        )
-
-    def rollback(self):
-        """
-        Roll back workflow after failure.
-        """
-
-        self.workflow_status = (
-            WorkflowStatus.ROLLED_BACK
-        )
-
-        self.logger.warning(
-            f"{self.workflow_name} rolled back."
-        )
+        return context
