@@ -25,7 +25,7 @@ class AIWorkflowOrchestrator:
         self.rag_workflow = RAGWorkflow()
         self.churn_workflow = ChurnWorkflow()
 
-        self.error_logger = WorkflowErrorLogger()
+        
 
     def run(self, user_query):
         context = None

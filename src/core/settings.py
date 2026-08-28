@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     huggingface_api_key: str = ""
 
     embedding_model: str = (
-        "BAAI/bge-base-en-v1.5"
+        "sentence-transformers/all-mpnet-base-v2"
     )
 
     # -------------------------------------------------
