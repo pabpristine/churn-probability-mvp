@@ -23,6 +23,10 @@ def main():
 
     context.kpi_probability = 60
 
+    context.current_kpis = {
+        "program_stage": "Scaling"
+    }
+
     context.campaign_status = "Scaling"
 
     # ---------------------------------------------
