@@ -1,7 +1,7 @@
 import httpx
 import json
 
-url = "http://localhost:8000/api/v1/client-analysis"
+url = "http://localhost:8001/api/v1/client-analysis"
 payload = {"user_query": "Give me churn analysis for Yardworx Land Management"}
 
 print(f"Sending POST request to {url}...")
