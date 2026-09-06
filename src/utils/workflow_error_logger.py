@@ -52,22 +52,27 @@ class WorkflowErrorLogger:
             "retry_of": retry_of,
             "mode": mode,
             "node_name": node_name,
-            "error_name": type(exc).__name__,
             "error_message": str(exc),
             "error_stack": tb_str,
             "severity": severity,
-            "client_id": client_id,
-            "client_name": client_name,
-            "run_id": run_id,
-            "parent_run_id": parent_run_id,
-            "root_run_id": root_run_id,
-            "source_workflow_type": source_workflow_type,
-            "environment": environment,
             "error_payload": error_payload or {},
             "execution_payload": execution_payload or {},
             "workflow_payload": workflow_payload or {},
             "trigger_payload": trigger_payload or {},
-            "extra_payload": extra_payload or {},
+            "extra_payload": {
+                **(extra_payload or {}),
+                "error_name": type(exc).__name__,
+                "client_id": client_id,
+                "client_name": client_name,
+                "run_id": run_id,
+                "parent_run_id": parent_run_id,
+                "root_run_id": root_run_id,
+                "source_workflow_type": source_workflow_type,
+                "environment": environment,
+            },
         }
 
-        self.repo.log_error(data)
+        try:
+            self.repo.log_error(data)
+        except Exception as e:
+            print(f"Failed to log to workflow_error_logs: {e}")

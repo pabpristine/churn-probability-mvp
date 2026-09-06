@@ -24,8 +24,7 @@ class AIWorkflowOrchestrator:
         self.kpi_workflow = KPIWorkflow()
         self.rag_workflow = RAGWorkflow()
         self.churn_workflow = ChurnWorkflow()
-
-        
+        self.error_logger = WorkflowErrorLogger()
 
     def run(self, user_query):
         context = None
@@ -55,29 +54,32 @@ class AIWorkflowOrchestrator:
             metadata = getattr(context, "metadata", {}) if context is not None else {}
             execution_id = metadata.get("execution_id")
 
-            # Orchestration-level error log
-            self.error_logger.log(
-                workflow_name="AIWorkflowOrchestrator",
-                workflow_id=metadata.get("workflow_id"),
-                execution_id=execution_id,
-                execution_url=metadata.get("execution_url"),
-                retry_of=metadata.get("retry_of"),
-                mode=metadata.get("mode"),
-                node_name=None,  # not a specific node here
-                exc=exc,
-                severity="error",
-                client_id=metadata.get("client_id"),
-                client_name=metadata.get("client_name"),
-                run_id=metadata.get("run_id"),
-                parent_run_id=metadata.get("parent_run_id"),
-                root_run_id=metadata.get("root_run_id"),
-                source_workflow_type=metadata.get("source_workflow_type", "ai_orchestrator"),
-                environment=metadata.get("environment", "production"),
-                execution_payload={
-                    "metadata": metadata,
-                    "user_query": user_query,
-                },
-            )
+            try:
+                # Orchestration-level error log
+                self.error_logger.log(
+                    workflow_name="AIWorkflowOrchestrator",
+                    workflow_id=metadata.get("workflow_id"),
+                    execution_id=execution_id,
+                    execution_url=metadata.get("execution_url"),
+                    retry_of=metadata.get("retry_of"),
+                    mode=metadata.get("mode"),
+                    node_name=None,  # not a specific node here
+                    exc=exc,
+                    severity="error",
+                    client_id=metadata.get("client_id"),
+                    client_name=metadata.get("client_name"),
+                    run_id=metadata.get("run_id"),
+                    parent_run_id=metadata.get("parent_run_id"),
+                    root_run_id=metadata.get("root_run_id"),
+                    source_workflow_type=metadata.get("source_workflow_type", "ai_orchestrator"),
+                    environment=metadata.get("environment", "production"),
+                    execution_payload={
+                        "metadata": metadata,
+                        "user_query": user_query,
+                    },
+                )
+            except Exception as log_error:
+                print(f"Failed to log error to DB: {log_error}")
 
             # Re-raise to let FastAPI / caller handle the HTTP response
-            raise
+            raise exc

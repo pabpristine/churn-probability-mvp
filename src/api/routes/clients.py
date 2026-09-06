@@ -41,25 +41,22 @@ def get_client_analysis(client_id: str):
 
 @router.get("/{client_id}/history", response_model=List[Dict[str, Any]])
 def get_client_history(client_id: str):
-    # Returns vector matches. We can return historical similarity matches or default ones.
-    return [
-        {
-            "id": "hc1",
-            "name": "Vanguard Tech",
-            "industry": "SaaS",
-            "similarityScore": 92,
-            "outcome": "churned",
-            "healthAtTime": 30,
-            "reasonForChurn": "Lack of perceived ROI after 12 months. Executive sponsor left.",
-            "lessonsLearned": "Ensure multi-threading of executive relationships."
-        },
-        {
-            "id": "hc2",
-            "name": "DataFlow Inc",
-            "industry": "SaaS",
-            "similarityScore": 88,
-            "outcome": "retained",
-            "healthAtTime": 35,
-            "lessonsLearned": "Intervened early with an on-site workshop which realigned goals."
-        }
-    ]
+    # Returns historical similarity matches from Supabase if available
+    try:
+        from src.repositories.summary_embedding_repository import SummaryEmbeddingRepository
+        from src.repositories.client_repository import ClientRepository
+
+        client_repo = ClientRepository()
+        client_row = client_repo.find_by_client_id(client_id)
+        if not client_row:
+            return []
+
+        # Return any stored similar historical clients from the client record
+        historical = client_row.get("historical_matches") or []
+        if historical:
+            return historical
+
+        # No historical similarity found yet (workflow not run for this client)
+        return []
+    except Exception:
+        return []

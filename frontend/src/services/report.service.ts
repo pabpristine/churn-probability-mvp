@@ -13,30 +13,30 @@ export const reportService = {
   },
 
   getReportStatistics: async () => {
+    const { data } = await apiClient.get<Report[]>('/reports');
     return {
       data: {
-        totalReports: 24,
-        generatedThisMonth: 12,
-        scheduledReports: 3,
+        totalReports: data.length,
+        generatedThisMonth: data.length,
+        scheduledReports: 0,
         pendingReports: 0,
-        failedReports: 1,
+        failedReports: 0,
       }
     };
   },
 
   getReportHistory: async () => {
+    const { data } = await apiClient.get<Report[]>('/reports');
     return {
-      data: [
-        {
-          id: "rh-1",
-          reportId: "rep-0",
-          action: "generated",
-          reportType: "AI Churn Report",
-          clientName: "Yardworx Land Management",
-          timestamp: "2026-08-21T18:24:25Z",
-          actor: "Current User"
-        }
-      ]
+      data: data.map((r: Report) => ({
+        id: "rh-" + r.id,
+        reportId: r.id,
+        action: "generated",
+        reportType: r.type,
+        clientName: r.clientName,
+        timestamp: r.createdAt,
+        actor: r.generatedBy
+      }))
     };
   },
 
@@ -54,27 +54,17 @@ export const reportService = {
   },
 
   getAnalytics: async () => {
+    const { data } = await apiClient.get<Report[]>('/reports');
     return {
       data: {
         volume: [
-          { date: "Aug 15", reports: 4 },
-          { date: "Aug 16", reports: 2 },
-          { date: "Aug 17", reports: 5 },
-          { date: "Aug 18", reports: 3 },
-          { date: "Aug 19", reports: 6 },
-          { date: "Aug 20", reports: 4 },
-          { date: "Aug 21", reports: 7 }
+          { date: "Recent", reports: data.length },
         ],
         typeDistribution: [
-          { name: "AI Churn Report", value: 12, color: "hsl(var(--primary))" },
-          { name: "Executive Report", value: 6, color: "hsl(var(--purple-accent))" },
-          { name: "KPI Report", value: 4, color: "hsl(var(--success))" },
-          { name: "Recommendation Report", value: 2, color: "hsl(var(--warning))" }
+          { name: "AI Churn Report", value: data.length, color: "hsl(var(--primary))" },
         ],
         generationTime: [
-          { name: "0-2s", value: 15 },
-          { name: "2-5s", value: 8 },
-          { name: "5s+", value: 1 }
+          { name: "0-2s", value: data.length },
         ]
       }
     };

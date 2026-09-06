@@ -71,8 +71,7 @@ class SummaryChurnAnalysisNode(BaseService):
                 "Return only valid JSON."
             ),
             temperature=0.2,
-            max_tokens=1200,
-            response_format={"type": "json_object"}
+            max_tokens=1200
         )
 
         content = parsed_response["content"]

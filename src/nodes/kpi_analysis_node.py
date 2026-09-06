@@ -444,8 +444,7 @@ class KPIAnalysisNode(BaseService):
             response = self.groq_provider.generate_response(
                 prompt=prompt,
                 system_prompt=KPI_ANALYSIS_SYSTEM_PROMPT,
-                temperature=0.2,
-                response_format={"type": "json_object"}
+                temperature=0.2
             )
 
             content = response.get("content", "").strip()

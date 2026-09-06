@@ -133,10 +133,6 @@ class SummaryGenerationNode(BaseService):
             prompt=user_prompt,
             temperature=0.0,
             max_tokens=800,
-            include_reasoning=False,
-            response_format={
-                "type": "json_object",
-            },
         )
 
     # -------------------------------------------------
@@ -184,7 +180,7 @@ class SummaryGenerationNode(BaseService):
 
             if (
                 lines
-                and lines.strip().lower()[0]
+                and lines[0].strip().lower()
                 in (
                     "```",
                     "```json",

@@ -17,10 +17,21 @@ import { AIAssistantPreview }      from './components/AIAssistantPreview';
 
 // ============================================================
 // Dashboard Page — Executive View
-// ============================================================
+import { useDashboard } from '@/hooks/useDashboard';
 
 export function DashboardPage() {
   const [refreshKey, setRefreshKey] = React.useState(0);
+  const { metrics, churnRiskChart, revenueChart, healthDistribution, isLoading } = useDashboard();
+
+  // Create KPI array mapped from metrics
+  const kpiData = metrics ? [
+    { ...metrics.totalClients, iconColor: 'primary' },
+    { ...metrics.activeClients, iconColor: 'success' },
+    { ...metrics.atRiskClients, iconColor: 'warning' },
+    { ...metrics.avgChurnProbability, iconColor: 'danger' },
+    { ...metrics.avgHealthScore, iconColor: 'info' },
+    { ...metrics.totalMRR, iconColor: 'primary' },
+  ].filter(Boolean) as any[] : undefined;
 
   return (
     <ContentWrapper className="space-y-5">
@@ -40,7 +51,7 @@ export function DashboardPage() {
 
       {/* ── 3. KPI Cards ── */}
       <section aria-label="Key Performance Indicators">
-        <KPISection />
+        <KPISection kpis={kpiData} />
       </section>
 
       {/* ── 4. AI Executive Summary ── */}
@@ -53,18 +64,27 @@ export function DashboardPage() {
         aria-label="Client Health and Risk Distribution"
         className="grid grid-cols-1 lg:grid-cols-3 gap-4"
       >
-        <ClientHealthOverview className="lg:col-span-2" />
-        <RiskDistributionChart />
+        <ClientHealthOverview breakdown={metrics?.churnRiskSummary} className="lg:col-span-2" />
+        <RiskDistributionChart data={healthDistribution} />
       </section>
 
       {/* ── 6. Churn Trend Chart ── */}
       <section aria-label="Monthly Churn Trend">
-        <ChurnTrendChart />
+        <ChurnTrendChart data={churnRiskChart} />
       </section>
 
       {/* ── 7. High Risk Table ── */}
       <section aria-label="High Risk Clients">
-        <HighRiskClientsTable />
+        <HighRiskClientsTable clients={metrics?.recentAlerts?.map((a: any) => ({
+          id: a.clientId,
+          name: a.clientName,
+          industry: 'Unknown',
+          healthScore: 0,
+          churnProbability: 0,
+          trend: 'neutral',
+          riskLevel: a.type,
+          mrr: 0
+        }))} />
       </section>
 
       {/* ── 8. Activity + Workflow (2-col) ── */}
