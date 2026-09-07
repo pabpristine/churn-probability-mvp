@@ -78,22 +78,27 @@ Small conversational changes should not significantly affect the score.
 OUTPUT FORMAT
 ========================
 
-Return ONLY valid JSON.
+Return ONLY a valid JSON object.
 
 Do not use markdown.
+Do not include ``` or code fences.
+Do not include any explanation or text outside the JSON object.
 
-Do not explain your reasoning.
-
-Do not preserve outdated future events.
-
-If a meeting, appointment, review call, or scheduled event has already occurred and no longer represents the client's current state, remove it from the updated summary unless newer CRM updates indicate it is still relevant.
-
-Return exactly:
+The JSON object must contain exactly these fields:
 
 {
-    "client_name": string,
-    "client_id": string,
-    "summary": string,
-    "satisfaction_score": integer
+    "client_name": "string",
+    "client_id": "string",
+    "summary": "string",
+    "satisfaction_score": 75
 }
+
+Requirements:
+
+- client_name must be a string.
+- client_id must be a string.
+- summary must be a string.
+- satisfaction_score must be an integer from 0 to 100.
+- Do not return null.
+- Do not add additional fields.
 """

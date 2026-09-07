@@ -47,7 +47,7 @@ class PatternRepository(BaseRepository):
             operation="select",
             table=self.table_name,
             filters={
-                "pattern_name": pattern_key
+                "pattern_key": pattern_key
             }
         )
 

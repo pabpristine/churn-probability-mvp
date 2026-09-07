@@ -39,35 +39,41 @@ class WorkflowErrorLogger:
         trigger_payload: Optional[Dict[str, Any]] = None,
         extra_payload: Optional[Dict[str, Any]] = None,
     ):
+        """
+        Store a workflow error using only the columns
+        available in the workflow_error_logs table.
+
+        Database columns:
+            id
+            workflow_name
+            failed_node
+            error_message
+            execution_id
+            workflow_id
+            error_stack
+            created_at
+        """
+
+        # Build complete traceback
         tb_str = "".join(
-            traceback.format_exception(type(exc), exc, exc.__traceback__)
+            traceback.format_exception(
+                type(exc),
+                exc,
+                exc.__traceback__
+            )
         )
 
+        # IMPORTANT:
+        # Only include columns that actually exist
+        # in workflow_error_logs.
         data = {
-            "created_at": datetime.utcnow().isoformat(),
             "workflow_name": workflow_name,
-            "workflow_id": workflow_id,
-            "execution_id": execution_id,
-            "execution_url": execution_url,
-            "retry_of": retry_of,
-            "mode": mode,
-            "node_name": node_name,
-            "error_name": type(exc).__name__,
+            "failed_node": node_name,
             "error_message": str(exc),
+            "execution_id": execution_id,
+            "workflow_id": workflow_id,
             "error_stack": tb_str,
-            "severity": severity,
-            "client_id": client_id,
-            "client_name": client_name,
-            "run_id": run_id,
-            "parent_run_id": parent_run_id,
-            "root_run_id": root_run_id,
-            "source_workflow_type": source_workflow_type,
-            "environment": environment,
-            "error_payload": error_payload or {},
-            "execution_payload": execution_payload or {},
-            "workflow_payload": workflow_payload or {},
-            "trigger_payload": trigger_payload or {},
-            "extra_payload": extra_payload or {},
+            "created_at": datetime.utcnow().isoformat(),
         }
 
-        self.repo.log_error(data)
+        return self.repo.log_error(data)

@@ -10,7 +10,7 @@ class CampaignStageRepository(BaseRepository):
     def __init__(self):
         super().__init__(
             repository_name="Campaign Stage Repository",
-            table_name="campaign_stage_weight_config"
+            table_name="campaign_stage_weights"
         )
 
     # -------------------------------------------------
@@ -44,7 +44,7 @@ class CampaignStageRepository(BaseRepository):
             operation="select",
             table=self.table_name,
             filters={
-                "campaign_stage": campaign_stage
+                "status": campaign_stage
             }
         )
 
