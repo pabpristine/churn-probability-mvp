@@ -184,7 +184,7 @@ class SummaryGenerationNode(BaseService):
 
             if (
                 lines
-                and lines.strip().lower()[0]
+                and lines[0].strip().lower()
                 in (
                     "```",
                     "```json",

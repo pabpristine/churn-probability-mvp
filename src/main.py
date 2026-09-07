@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.routes.client_analysis import router as client_analysis_router
-from src.api.routes.tests import router as tests_router
 from src.api.routes.clients import router as clients_router
 from src.api.routes.dashboard import router as dashboard_router
 from src.api.routes.workflows import router as workflows_router
@@ -35,10 +34,6 @@ app.include_router(
 )
 
 app.include_router(
-    tests_router
-)
-
-app.include_router(
     clients_router
 )
 
@@ -66,3 +61,4 @@ def root():
     return {
         "message": "Dirt2Dollar Framework Running Successfully"
     }
+

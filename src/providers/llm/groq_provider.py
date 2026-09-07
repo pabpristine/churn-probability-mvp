@@ -139,8 +139,17 @@ class GroqProvider(BaseProvider):
         message = choice.message
         usage = response.usage
 
+        content = message.content or ""
+        reasoning = getattr(message, "reasoning", None)
+        if not content and reasoning:
+            content = reasoning
+
+        import logging
+        logging.getLogger("Dirt2Dollar").info(f"GROQ DEBUG - content: {repr(content)}")
+        logging.getLogger("Dirt2Dollar").info(f"GROQ DEBUG - reasoning: {repr(reasoning)}")
+
         return {
-            "content": message.content or "",
+            "content": content,
             "model": response.model,
             "usage": {
                 "prompt_tokens": (
