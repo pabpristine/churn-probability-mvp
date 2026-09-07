@@ -1,5 +1,6 @@
 import gspread
 from google.oauth2.service_account import Credentials
+from pathlib import Path
 
 from src.base.base_provider import BaseProvider
 from src.core.settings import settings
@@ -38,8 +39,20 @@ class GoogleSheetsProvider(BaseProvider):
             "https://www.googleapis.com/auth/spreadsheets.readonly"
         ]
 
+        credentials_path = Path(settings.google_credentials_file)
+        if not credentials_path.is_file():
+            credential_files = list(Path("credentials").glob("*.json"))
+            if len(credential_files) == 1:
+                credentials_path = credential_files[0]
+            else:
+                raise FileNotFoundError(
+                    "Google service-account JSON was not found. Set "
+                    "GOOGLE_CREDENTIALS_FILE or add exactly one JSON file "
+                    "to the credentials directory."
+                )
+
         credentials = Credentials.from_service_account_file(
-            settings.google_credentials_file,
+            str(credentials_path),
             scopes=scopes
         )
 

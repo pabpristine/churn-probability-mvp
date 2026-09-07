@@ -33,6 +33,32 @@ export function DashboardPage() {
     { ...metrics.totalMRR, iconColor: 'primary' },
   ].filter(Boolean) as any[] : undefined;
 
+  const healthBreakdown = metrics ? {
+    healthy: metrics.churnRiskSummary.healthy + metrics.churnRiskSummary.low,
+    medium: metrics.churnRiskSummary.medium,
+    high: metrics.churnRiskSummary.high,
+    critical: metrics.churnRiskSummary.critical,
+    total: metrics.churnRiskSummary.total,
+  } : undefined;
+
+  const riskDistribution = healthDistribution?.map((point) => ({
+    name: point.label,
+    value: point.value,
+    color: ({
+      healthy: '#22C55E',
+      low: '#22C55E',
+      medium: '#F59E0B',
+      high: '#EF4444',
+      critical: '#991B1B',
+    }[point.label.toLowerCase()] ?? '#64748B'),
+  }));
+
+  const churnTrend = churnRiskChart?.map((point) => ({
+    month: point.label,
+    churnRate: point.value,
+    predicted: point.secondaryValue,
+  }));
+
   return (
     <ContentWrapper className="space-y-5">
 
@@ -64,13 +90,13 @@ export function DashboardPage() {
         aria-label="Client Health and Risk Distribution"
         className="grid grid-cols-1 lg:grid-cols-3 gap-4"
       >
-        <ClientHealthOverview breakdown={metrics?.churnRiskSummary} className="lg:col-span-2" />
-        <RiskDistributionChart data={healthDistribution} />
+        <ClientHealthOverview health={healthBreakdown} className="lg:col-span-2" />
+        <RiskDistributionChart data={riskDistribution} />
       </section>
 
       {/* ── 6. Churn Trend Chart ── */}
       <section aria-label="Monthly Churn Trend">
-        <ChurnTrendChart data={churnRiskChart} />
+        <ChurnTrendChart data={churnTrend} />
       </section>
 
       {/* ── 7. High Risk Table ── */}
