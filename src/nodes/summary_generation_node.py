@@ -132,7 +132,11 @@ class SummaryGenerationNode(BaseService):
             system_prompt=json_system_prompt,
             prompt=user_prompt,
             temperature=0.0,
-            max_tokens=800,
+            max_tokens=1200,
+            reasoning_format="hidden",
+            response_format={
+                "type": "json_object",
+            },
         )
 
     # -------------------------------------------------

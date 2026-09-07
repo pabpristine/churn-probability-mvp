@@ -144,7 +144,7 @@ class FinalChurnProbabilityNode(BaseService):
             weights = response
 
             update_weight = float(
-                weights["update_weight"]
+                weights["updates_weight"]
             )
 
             kpi_weight = float(

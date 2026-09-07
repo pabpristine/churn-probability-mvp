@@ -73,7 +73,7 @@ class GroqProvider(BaseProvider):
                 },
             ],
             "temperature": temperature,
-            "max_tokens": max_tokens,
+            "max_completion_tokens": max_tokens,
         }
 
         if response_format is not None:
@@ -88,9 +88,9 @@ class GroqProvider(BaseProvider):
 
         if is_reasoning_model:
             if reasoning_format is not None:
-                request_payload["reasoning_format"] = (
-                    reasoning_format
-                )
+                request_payload["reasoning_format"] = reasoning_format
+            elif response_format is not None:
+                request_payload["reasoning_format"] = "hidden"
 
             elif include_reasoning is not None:
                 request_payload["include_reasoning"] = (

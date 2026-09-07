@@ -24,6 +24,7 @@ class AIWorkflowOrchestrator:
         self.kpi_workflow = KPIWorkflow()
         self.rag_workflow = RAGWorkflow()
         self.churn_workflow = ChurnWorkflow()
+
         self.error_logger = WorkflowErrorLogger()
 
     def run(self, user_query):
